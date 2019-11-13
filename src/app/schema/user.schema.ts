@@ -1,4 +1,4 @@
-interface AddUserDTO {
+interface CreateUserDTO {
   userName: string;
   password: string;
   access: number;
@@ -15,7 +15,7 @@ interface UpdateUserAccessDTO {
 }
 
 export {
-  AddUserDTO,
+  CreateUserDTO,
   UpdateUserAccessDTO,
   UpdateUserPasswordDTO,
 };

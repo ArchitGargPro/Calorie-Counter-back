@@ -1,21 +1,19 @@
 import 'reflect-metadata';
 import {createConnection} from 'typeorm';
 import {UserEntity} from './app/db/entities/user.entity';
+import { MealEntity } from './app/db/entities/meal.entity';
 
-createConnection().then(async connection => {
-
-    console.log('Inserting a new user into the database...');
-    const user = new UserEntity();
-    user.firstName = 'Timber';
-    user.lastName = 'Saw';
-    user.age = 25;
-    await connection.manager.save(user);
-    console.log('Saved a new user with id: ' + user.id);
-
-    console.log('Loading users from the database...');
-    const users = await connection.manager.find(UserEntity);
-    console.log('Loaded users: ', users);
-
-    console.log('Here you can setup and run express/koa/any other framework.');
-
+createConnection(
+  // {
+  //   type: 'sqlite',
+  //   database: 'test',
+  //   entities: [
+  //     UserEntity,
+  //     MealEntity,
+  //   ],
+  //   synchronize: true,
+  //   logging: true,
+  // }
+).then(connection => {
+  console.log('connected successfully ...\n\n==>', connection, '\n\n\n');
 }).catch(error => console.log(error));

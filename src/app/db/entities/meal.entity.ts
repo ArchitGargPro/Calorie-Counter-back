@@ -15,13 +15,13 @@ export class MealEntity extends BaseEntity {
   @Column({ name: 'title' })
   title: string;
 
-  @Column({ name: 'calories' })
-  calories: number;
+  @Column({ name: 'calorie' })
+  calorie: number;
 
-  @ManyToOne(type => UserEntity, user = user.meal, {
+  @ManyToOne(type => UserEntity, user => user.meals, {
     eager: true,
   })
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  @JoinColumn({ name: 'userId' })
+  userId: UserEntity;
 
 }
