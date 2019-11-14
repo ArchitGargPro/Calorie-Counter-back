@@ -20,9 +20,20 @@ class UserEntity extends BaseEntity {
     @OneToMany(type => MealEntity, meal => meal.userId)
     meals: MealEntity[];
 
-    public static async findById(UID: string): Promise<UserInterface> {
-        return UserEntity.findOne({ where: {UID} });
+    public static async findById(id: string): Promise<UserInterface> {
+        return UserEntity.findOne({ where: {id} });
     }
 
+    public static async findByUserName(userName: string): Promise<UserInterface> {
+        return UserEntity.findOne({ where: {userName} });
+    }
+
+    public static async getUserByUserName(userName: string): Promise<UserEntity> {
+        return UserEntity.findOne({ where: {userName} });
+    }
+
+    public static async removeUser(userName: string): Promise<UserInterface> {
+        return UserEntity.remove(await UserEntity.findOne({ where: {userName} }));
+    }
 }
 export default UserEntity;
