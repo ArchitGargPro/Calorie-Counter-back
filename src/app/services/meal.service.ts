@@ -5,7 +5,7 @@ import MealEntity from '../db/entities/meal.entity';
 @Injectable()
 export class MealService {
 
-  findAll(UID: string): Promise<MealInterface[]> {
+  findAll(): Promise<MealInterface[]> {
     return MealEntity.find();
   }
 }
