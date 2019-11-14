@@ -1,25 +1,12 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
 import { AccessService } from '../services/access.service';
-import LoginDTO from '../schema/access.schema';
-import { UserService } from '../services/user.service';
-import UserInterface from '../interfaces/user.interface';
 
-@Controller('login')
+@Controller('logout')
 export default class AccessController {
-  constructor(private readonly accessService: AccessService,
-              private readonly userService: UserService) {
-  }
+  constructor(private readonly accessService: AccessService) {}
 
   @Post()
-  async login(@Body() loginCredentials: LoginDTO): Promise<boolean> {
-    const user: UserInterface = await this.userService.findByUserName(loginCredentials.userName);
-    if ( !user ) {
-      return false;
-    } else {
-      if (user.password === loginCredentials.password) {
-        await this.accessService.UpdateAccess(user.userName, user.access);
-        return true;
-      }
-    }
+  async logout(): Promise<any> {
+    return this.accessService.logOut();
   }
 }

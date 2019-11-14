@@ -14,6 +14,7 @@ export default class UserController {
 
   @Get()
   async findAll(): Promise<UserInterface[] | string> {
+    console.log('##############', await this.accessService.getAccess());
     if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserEntity[] = await this.userService.findAll();
       if (!user) {
