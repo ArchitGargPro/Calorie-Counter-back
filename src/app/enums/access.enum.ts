@@ -4,5 +4,4 @@ enum EAccess {
   MANAGER,
   ADMIN,
 }
-
 export default EAccess;

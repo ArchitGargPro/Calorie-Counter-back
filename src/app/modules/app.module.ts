@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from '../controllers/app.controller';
 import { AppService } from '../services/app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -10,18 +10,23 @@ import UserModule from './user.module';
 import MealModule from './meal.module';
 import UserEntity from '../db/entities/user.entity';
 import MealEntity from '../db/entities/meal.entity';
+import AccessModule from './access.module';
+import AccessEntity from '../db/entities/access.entity';
+import AccessController from '../controllers/access.controller';
+import { AccessService } from '../services/access.service';
 
 @Module({
   imports: [UserModule,
             MealModule,
+            AccessModule,
     TypeOrmModule.forRoot({
         type: 'sqlite',
         database: 'test.db',
-        entities: [UserEntity, MealEntity],
+        entities: [UserEntity, MealEntity, AccessEntity],
         synchronize: true,
         logging: true,
   })],
-  controllers: [AppController, UserController, MealController],
-  providers: [AppService, UserService, MealService],
+  controllers: [AppController, UserController, MealController, AccessController],
+  providers: [AppService, UserService, MealService, AccessService],
 })
 export class AppModule {}
