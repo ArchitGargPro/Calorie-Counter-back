@@ -5,6 +5,7 @@ import { AppService } from '../services/app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  @Get()
   showInfo(): string {
     return 'Use: /user to view all\n' +
       '/user/new to create\n' +

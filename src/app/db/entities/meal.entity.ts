@@ -1,7 +1,8 @@
-import { PrimaryGeneratedColumn, Column, BaseEntity, ManyToOne, JoinColumn } from 'typeorm';
-import { UserEntity } from './user.entity';
+import { PrimaryGeneratedColumn, Column, BaseEntity, ManyToOne, JoinColumn, Entity } from 'typeorm';
+import UserEntity from './user.entity';
 
-export class MealEntity extends BaseEntity {
+@Entity()
+class MealEntity extends BaseEntity {
 
   @PrimaryGeneratedColumn()
   id: number;
@@ -25,3 +26,5 @@ export class MealEntity extends BaseEntity {
   userId: UserEntity;
 
 }
+
+export default MealEntity;

@@ -1,7 +1,8 @@
-import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany } from 'typeorm';
-import { MealEntity } from './meal.entity';
+import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany, Entity } from 'typeorm';
 import UserInterface from '../../interfaces/user.interface';
+import MealEntity from './meal.entity';
 
+@Entity()
 class UserEntity extends BaseEntity {
 
     @PrimaryGeneratedColumn()
@@ -13,9 +14,7 @@ class UserEntity extends BaseEntity {
     @Column()
     password: string;
 
-    @Column({
-        length: 1,
-    })
+    @Column()
     access: number;
 
     @OneToMany(type => MealEntity, meal => meal.userId)

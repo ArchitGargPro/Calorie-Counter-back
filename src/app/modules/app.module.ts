@@ -6,13 +6,18 @@ import UserController from '../controllers/user.controller';
 import MealController from '../controllers/meal.controller';
 import { UserService } from '../services/user.service';
 import { MealService } from '../services/meal.service';
+import UserModule from './user.module';
+import MealModule from './meal.module';
+import UserEntity from '../db/entities/user.entity';
+import MealEntity from '../db/entities/meal.entity';
 
-@Global()
 @Module({
-  imports: [TypeOrmModule.forRoot({
+  imports: [UserModule,
+            MealModule,
+    TypeOrmModule.forRoot({
         type: 'sqlite',
         database: 'test.db',
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        entities: [UserEntity, MealEntity],
         synchronize: true,
         logging: true,
   })],
