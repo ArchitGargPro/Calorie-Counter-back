@@ -17,7 +17,7 @@ class UserEntity extends BaseEntity {
     @Column()
     access: number;
 
-    @OneToMany(type => MealEntity, meal => meal.userId)
+    @OneToMany(() => MealEntity, meal => meal.userId)
     meals: MealEntity[];
 
     public static async findById(id: string): Promise<UserInterface> {

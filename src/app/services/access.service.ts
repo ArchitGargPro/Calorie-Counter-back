@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import AccessEntity from '../db/entities/access.entity';
-import EAccess from '../enums/access.enum';
 
 @Injectable()
 export class AccessService {
@@ -23,19 +22,5 @@ export class AccessService {
     accessToken.userName = userName;
     accessToken.access = access;
     await AccessEntity.save(accessToken);
-  }
-
-  async InitializeAccess() {
-    // tslint:disable-next-line:no-console
-    console.log('logging out ...');
-    const accessToken: AccessEntity = await AccessEntity.findOne();
-    if (!accessToken) {
-      await AccessEntity.insert({
-        access: EAccess.DEFAULT,
-      });
-    } else {
-      accessToken.access = EAccess.DEFAULT;
-      await AccessEntity.save(accessToken);
-    }
   }
 }
