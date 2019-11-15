@@ -18,12 +18,12 @@ class UserEntity extends BaseEntity {
     access: number;
 
     @Column()
-    expectedCalorie: number;
+    calorie: number;
 
     @OneToMany(() => MealEntity, meal => meal.userId)
     meals: MealEntity[];
 
-    public static async findById(id: string): Promise<UserInterface> {
+    public static async findById(id: number): Promise<UserInterface> {
         return UserEntity.findOne({ where: {id} });
     }
 

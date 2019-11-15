@@ -12,29 +12,27 @@ class AccessEntity extends BaseEntity {
   @PrimaryColumn()
   access: number;
 
-  public static async getCurrentAccess(): Promise<number> {
+  private static async currentUser(): Promise<AccessEntity> {
     let current = await AccessEntity.find();
-    if (!current) {
+    let n = current.length;
+    if (n === 0) {
       await this.InitializeAccess();
       current = await AccessEntity.find();
     }
-    const n = current.length;
-    return current[n - 1].access;
+    n = current.length;
+    return current[n - 1];
+  }
+
+  public static async getCurrentAccess(): Promise<number> {
+    return (await this.currentUser()).access;
   }
 
   public static async getCurrentUser(): Promise<string> {
-    let current = await AccessEntity.find();
-    if (!current) {
-      await this.InitializeAccess();
-      current = await AccessEntity.find();
-    }
-    const n = current.length;
-    return current[n - 1].userName;
+    return (await this.currentUser()).userName;
   }
 
   public static async InitializeAccess(): Promise<any> {
     // tslint:disable-next-line:no-console
-    console.log(' Init ...');
     const accessToken: AccessEntity = await AccessEntity.findOne({where: {id: 1}});
     if (!accessToken) {
       await AccessEntity.insert({
@@ -48,12 +46,20 @@ class AccessEntity extends BaseEntity {
   }
 
   public static async logOut(): Promise<any> {
-    const current = await AccessEntity.find();
-    if (current.length === 0) {
+    let current = await AccessEntity.find();
+    if (current.length === 0 ) {
       return 'no user logged In, LOL';
     } else {
-      // console.log('deleting the user access ...', current );
-      return await AccessEntity.remove( current[0] );
+      if (current[0].userName === 'null') {
+        await AccessEntity.remove(current[0]);
+      }
+      if (current.length === 0) {
+        return 'no user logged In, LOL';
+      } else {
+        // console.log('deleting the user access ...', current );
+        current = await AccessEntity.find();
+        return AccessEntity.remove(current[0]);
+      }
     }
   }
 }

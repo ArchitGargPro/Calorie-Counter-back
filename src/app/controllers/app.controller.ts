@@ -17,14 +17,17 @@ export class AppController {
       '/meal to view your meals';
   }
   @Post('login')
-  async login(@Body() loginCredentials: LoginDTO): Promise<boolean> {
+  async login(@Body() loginCredentials: LoginDTO): Promise<string> {
+    // await this.accessService.logOut();
     const user: UserInterface = await this.userService.findByUserName(loginCredentials.userName);
     if ( !user ) {
-      return false;
+      return 'LOGIN Failed';
     } else {
       if (user.password === loginCredentials.password) {
         await this.accessService.UpdateAccess(user.userName, user.access);
-        return true;
+        return 'LOGIN Successful';
+      } else {
+        return 'LOGIN Failed';
       }
     }
   }

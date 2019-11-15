@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import UserInterface from '../interfaces/user.interface';
-import { CreateUserDTO } from '../schema/user.schema';
+import { CreateUserDTO, UpdateUserDTO } from '../schema/user.schema';
 import UserEntity from '../db/entities/user.entity';
 import { AccessService } from '../services/access.service';
 import EAccess from '../enums/access.enum';
+import AccessEntity from '../db/entities/access.entity';
 
 @Controller('user')
 export default class UserController {
@@ -69,32 +70,64 @@ export default class UserController {
   }
 
   @Put('/update')
-  async updateUser(@Body() createUserDTO: CreateUserDTO): Promise<UserInterface | string> {
-    if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
-      const user: UserInterface = await this.userService.findByUserName(createUserDTO.userName);
-      if (!user) {
-        return `user \"${createUserDTO.userName}\" not found`;
-      } else {
-        if (createUserDTO.access === undefined) {
-          if (createUserDTO.password === undefined) {
-            return 'WrongAction: Enter the value to be updated';
-          } else {
-            return await this.userService.updateUserPassword({
-              password: createUserDTO.password,
-              userName: createUserDTO.userName,
-            });
-          }
-        } else if (createUserDTO.password === undefined) {
-          return await this.userService.updateUserAccess({
-            access: createUserDTO.access,
-            userName: createUserDTO.userName,
-          });
+  async updateUser(@Body() updateUserDTO: UpdateUserDTO): Promise<UserInterface | string> {
+    if (await this.accessService.getAccess() === EAccess.USER ) {
+      if ( !updateUserDTO.calorie ) {
+        if ( updateUserDTO.password || updateUserDTO.access ) {
+          return 'ask your MANAGER to update your password/access';
         } else {
-          return 'Only one value can be updated at a time';
+          return 'enter the expected \'calories\' to update';
+        }
+      } else {
+        // if ( updateUserDTO.password || updateUserDTO.access ) {
+        //   return 'You cannot update password/access Ask MANAGER or ADMIN to do so';
+        // }
+        updateUserDTO.userName = await this.accessService.getCurrentUser();
+        return await this.userService.updateUserExpectation({
+          userName: updateUserDTO.userName,
+          calorie: updateUserDTO.calorie,
+        });
+      }
+    } else if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      const user: UserInterface = await this.userService.findByUserName(updateUserDTO.userName);
+      if (!user) {
+        return `user \"${updateUserDTO.userName}\" not found`;
+      } else {
+        if (!updateUserDTO.calorie) {
+          if (!updateUserDTO.access && !updateUserDTO.calorie) {
+            if (!updateUserDTO.password) {
+              return 'WrongAction: Enter the value to be updated';
+            } else {
+              return await this.userService.updateUserPassword({
+                password: updateUserDTO.password,
+                userName: updateUserDTO.userName,
+              });
+            }
+          } else if (!updateUserDTO.password && !updateUserDTO.calorie) {
+            return await this.userService.updateUserAccess({
+              access: updateUserDTO.access,
+              userName: updateUserDTO.userName,
+            });
+          } else if (updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
+            return 'You do not have access to update ExpectedCalorie of a user';
+          } else {
+            return 'Only one value can be updated at a time';
+          }
+        } else {
+          if ( await this.accessService.getAccess() === EAccess.ADMIN ) {
+            if (updateUserDTO.password || updateUserDTO.access) {
+              return 'Only one value can be updated at a time';
+            } else {
+              return await this.userService.updateUserExpectation({
+                userName: updateUserDTO.userName,
+                calorie: updateUserDTO.calorie,
+              });
+            }
+          }
         }
       }
     } else {
-      return 'You don\'t have access to update a record, Please log In as MANAGER or ADMIN';
+      return 'You don\'t have access to update a record, Please LOG IN';
     }
   }
 }

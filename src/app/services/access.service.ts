@@ -18,16 +18,13 @@ export class AccessService {
   }
 
   async UpdateAccess(userName: string, access: number) {
-    console.log('hereee');
     let accessToken: AccessEntity = await AccessEntity.findOne();
-    console.log('hereee1');
     if (!accessToken) {
       await AccessEntity.InitializeAccess();
     }
     accessToken = await AccessEntity.findOne();
     accessToken.userName = userName;
     accessToken.access = access;
-    console.log('hereee2');
     await AccessEntity.save(accessToken);
   }
 
