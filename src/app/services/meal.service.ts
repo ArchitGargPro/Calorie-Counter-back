@@ -4,47 +4,56 @@ import { CreateMealDTO } from '../schema/meal.schema';
 
 @Injectable()
 export class MealService {
-  async insert(mealDetails: CreateMealDTO): Promise<MealEntity> {
-    const { title, calorie } = mealDetails;
-    const meal = new MealEntity();
-    meal.title = title;
-    meal.calorie = calorie;
-    meal.date =  new Date().getDate().toString(10);
-    meal.time =  new Date().getTime().toString(10);
-    await meal.save();
-    return meal;
-  }
-  async getAll(): Promise<MealEntity[]> {
+
+  async getAll(): Promise<MealEntity[] | string> {
     const meals: MealEntity[] = await MealEntity.find();
-    return meals;
+    if ( !meals ) {
+      return 'no meals found';
+    } else {
+      return meals;
+    }
   }
+
   async getMeal(id: number): Promise<any> {
     const meal: MealEntity = await MealEntity.findOne(id);
-    if (meal === undefined) {
-      return '{ "msg" : "meal not found"}';
+    if (!meal) {
+      return 'meal not found';
     }
     return meal;
   }
+
+  async insert(mealDetails: CreateMealDTO): Promise<MealEntity> {
+    const meal = new MealEntity();
+    meal.title = mealDetails.title;
+    meal.calorie = mealDetails.calorie;
+    // TODO change format
+    const d = new Date();
+    meal.date =  d.getDate().toString(10) + '/' + d.getMonth().toString() + '/' + d.getFullYear();
+    meal.time =  d.getHours().toString() + ':' + d.getMinutes().toString() + ':' + d.getSeconds().toString();
+    return await meal.save();
+  }
+
   async update(id: number , mealDetails: CreateMealDTO): Promise<any> {
     const { title, calorie } = mealDetails;
     const meal: MealEntity = await MealEntity.findOne(id);
-    if (meal === undefined) {
-      return '{ "msg" : "meal not found"}';
+    if ( !meal ) {
+      return `meal not found (Id : ${id})`;
     }
-    if (title !== undefined) {
+    if (title) {
       meal.title = title;
     }
-    if (calorie !== undefined) {
+    if (calorie) {
       meal.calorie = calorie;
     }
-    await meal.save();
-    return meal;
+    return await meal.save();
   }
+
   async delete(id: number): Promise<any> {
     const meal: MealEntity = await MealEntity.findOne(id);
-    if (meal !== undefined) {
-      return MealEntity.remove(await MealEntity.findOne(id));
+    if (meal) {
+      return await MealEntity.remove(meal);
+    } else {
+      return `meal not found (Id : ${id})`;
     }
-    return 'meal not found';
   }
 }

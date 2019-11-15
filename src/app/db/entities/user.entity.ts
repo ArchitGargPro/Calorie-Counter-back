@@ -17,6 +17,9 @@ class UserEntity extends BaseEntity {
     @Column()
     access: number;
 
+    @Column()
+    expectedCalorie: number;
+
     @OneToMany(() => MealEntity, meal => meal.userId)
     meals: MealEntity[];
 
