@@ -22,7 +22,6 @@ export class AppController {
     if ( !user ) {
       return false;
     } else {
-      console.log('==> here #############', user);
       if (user.password === loginCredentials.password) {
         await this.accessService.UpdateAccess(user.userName, user.access);
         return true;
