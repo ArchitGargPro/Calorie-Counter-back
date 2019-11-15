@@ -5,7 +5,6 @@ import { CreateUserDTO, UpdateUserDTO } from '../schema/user.schema';
 import UserEntity from '../db/entities/user.entity';
 import { AccessService } from '../services/access.service';
 import EAccess from '../enums/access.enum';
-import AccessEntity from '../db/entities/access.entity';
 
 @Controller('user')
 export default class UserController {
@@ -46,9 +45,13 @@ export default class UserController {
     if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserInterface = await this.userService.findByUserName(createUserDTO.userName);
       if (!user) {
-        return await this.userService.createUser(createUserDTO);
+        if (!createUserDTO.access || !createUserDTO.password) {
+          return 'details missing, Please try again';
+        } else {
+          return await this.userService.createUser(createUserDTO);
+        }
       } else {
-        return 'userName \"${userName}\" already in use, try again with a different userName';
+        return `userName \"${createUserDTO.userName}\" already in use, try again with a different userName`;
       }
     } else {
       return 'You don\'t have access to create a record, Please log In as MANAGER or ADMIN';
