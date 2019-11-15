@@ -1,6 +1,4 @@
 interface CreateMealDTO {
-  date: string;
-  time: string;
   title: string;
   calorie: number;
 }
