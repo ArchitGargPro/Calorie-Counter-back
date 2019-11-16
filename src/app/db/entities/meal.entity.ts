@@ -19,11 +19,16 @@ class MealEntity extends BaseEntity {
   @Column({ name: 'calorie' })
   calorie: number;
 
-  @ManyToOne(type => UserEntity, user => user.meals, {
+  @ManyToOne(() => UserEntity, user => user.meals, {
     eager: true,
   })
+
   @JoinColumn({ name: 'userId' })
   userId: UserEntity;
+
+  public static async findByUser(user: UserEntity): Promise<MealEntity[]> {
+    return await MealEntity.find({where: {userId: user} });
+  }
 
 }
 

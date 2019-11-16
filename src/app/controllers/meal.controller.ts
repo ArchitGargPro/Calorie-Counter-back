@@ -1,48 +1,78 @@
 import { Controller, Post, Body, Get, Put, Delete, Param } from '@nestjs/common';
 import { CreateMealDTO, IDates, ITime } from '../schema/meal.schema';
 import { MealService } from '../services/meal.service';
+import EAccess from '../enums/access.enum';
+import { AccessService } from '../services/access.service';
+import MealEntity from '../db/entities/meal.entity';
 
 @Controller('meal')
 export default class MealController {
 
-  constructor(private readonly mealService: MealService) {
+  constructor(private readonly mealService: MealService,
+              private readonly accessService: AccessService) {
   }
 
   @Post()
-  postMeal( @Body() meal: CreateMealDTO) {
-    return this.mealService.insert(meal);
+  async postMeal( @Body() meal: CreateMealDTO): Promise<MealEntity | string> {
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.insert(meal);
+    } else {
+      return 'Please Login as USER/ADMIN to add your meal';
+    }
   }
 
   @Get()
-  getAllMeals() {
-    return this.mealService.getAll();
+  async getAllMeals() {
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.getAll();
+    } else {
+      return 'Please Login as USER/ADMIN to view your meals';
+    }
   }
 
   @Get('/byDate')
   async getMealsByDate(@Body() dates: IDates  ) {
-    console.log(dates.fromDate);
-    console.log(dates.toDate);
-    return await this.mealService.getMealByDate(dates.fromDate, dates.toDate);
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.getMealByDate(dates.fromDate, dates.toDate);
+    } else {
+      return 'Please Login as USER/ADMIN to view your meals';
+    }
   }
+
   @Get('/byTime')
-  async getMealsByTime(@Body() time: ITime  ) {
-    console.log('in Time');
-    console.log(time.fromTime);
-    console.log(time.toTime);
-    return await this.mealService.getMealByTime(time.fromTime, time.toTime);
+  async getMealsByTime(@Body() time: ITime ) {
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.getMealByTime(time.fromTime, time.toTime);
+    } else {
+      return 'Please Login as USER/ADMIN to view your meals';
+    }
   }
-  @Get(':id')
-  getMeal(@Param() params) {
-    return this.mealService.getMeal(params.id);
+
+  @Get('/of/:userName')
+  async getMeal(@Param('userName') userName: string) {
+    if (await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.getMeal(userName);
+    } else {
+      return 'Only ADMIN can view meals of other users';
+    }
   }
 
   @Put(':id')
-  updateMeal( @Param() id: number , @Body() meal: CreateMealDTO) {
-    return this.mealService.update(id , meal);
+  async updateMeal( @Param('id') id: number , @Body() meal: CreateMealDTO) {
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.update(id , meal);
+    } else {
+      return 'Please Login as USER/ADMIN to update your meal';
+    }
   }
+
   @Delete(':id')
-  deleteMeal(@Param() id: number) {
-    return this.mealService.delete(id);
+  async deleteMeal(@Param('id') id: number) {
+    if (await this.accessService.getAccess() === EAccess.USER || await this.accessService.getAccess() === EAccess.ADMIN) {
+      return await this.mealService.delete(id);
+    } else {
+      return 'Please Login as USER/ADMIN to delete your meal';
+    }
   }
 
 }
