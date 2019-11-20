@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import {createConnection} from 'typeorm';
-import AccessEntity from './app/db/entities/access.entity';
 
 createConnection()
   .then()

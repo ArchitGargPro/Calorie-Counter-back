@@ -73,7 +73,7 @@ export class MealService {
     const { title, calorie } = mealDetails;
     const meal: MealEntity = await MealEntity.findOne(id);
     if ( !meal ) {
-      return `meal not found`;
+      return 'no meals found';
     }
     if (!title && !calorie) {
       return 'enter value to be updated (title / calories)';
@@ -93,7 +93,7 @@ export class MealService {
     if (meal) {
       return await MealEntity.remove(meal);
     } else {
-      return `meal not found with this Id : ${id}`;
+      return `no meals found with this Id : ${id}`;
     }
   }
 }
