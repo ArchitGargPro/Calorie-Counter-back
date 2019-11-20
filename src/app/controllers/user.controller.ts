@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import UserInterface from '../interfaces/user.interface';
 import { CreateUserDTO, UpdateUserDTO } from '../schema/user.schema';
@@ -6,44 +6,51 @@ import UserEntity from '../db/entities/user.entity';
 import { AccessService } from '../services/access.service';
 import EAccess from '../enums/access.enum';
 import ServiceResponse from '../services/ServiceResponse';
+import AuthService from '../services/auth.service';
+import AuthenticationGuard from '../guards/authentication.guard';
+import RolesGuard from '../guards/roles.guard';
 
 @Controller('user')
 export default class UserController {
   constructor(private readonly userService: UserService,
+              private readonly authService: AuthService,
               private readonly accessService: AccessService) {
   }
 
   @Get()
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async findAll(): Promise<ServiceResponse> {
-    if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
+    // if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserEntity[] = await this.userService.findAll();
       if (!user) {
         return ServiceResponse.error('no users found');
       } else {
         return ServiceResponse.success(user);
       }
-    } else {
-      return ServiceResponse.error('You don\'t have access to view the records, Please log In as MANAGER or ADMIN');
-    }
+    // } else {
+    //   return ServiceResponse.error('You don\'t have access to view the records, Please log In as MANAGER or ADMIN');
+    // }
   }
 
   @Get('/:userName')
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async findById(@Param('userName')userName: string): Promise<ServiceResponse> {
-    if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
+    // if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserInterface = await this.userService.findByUserName(userName);
       if (!user) {
         return ServiceResponse.error(`user \"${userName}\" not found`);
       } else {
         return ServiceResponse.success(user);
       }
-    } else {
-      return ServiceResponse.error('You don\'t have access to view the records, Please log In as MANAGER or ADMIN');
-    }
+    // } else {
+    //   return ServiceResponse.error('You don\'t have access to view the records, Please log In as MANAGER or ADMIN');
+    // }
   }
 
   @Post('/new')
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async createUser(@Body() createUserDTO: CreateUserDTO): Promise<ServiceResponse> {
-    if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
+    // if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserInterface = await this.userService.findByUserName(createUserDTO.userName);
       if (!user) {
         if (!createUserDTO.access || !createUserDTO.password) {
@@ -54,23 +61,24 @@ export default class UserController {
       } else {
         return ServiceResponse.error(`userName \"${createUserDTO.userName}\" already in use, try again with a different userName`);
       }
-    } else {
-      return ServiceResponse.error('You don\'t have access to create a record, Please log In as MANAGER or ADMIN');
-    }
+    // } else {
+    //   return ServiceResponse.error('You don\'t have access to create a record, Please log In as MANAGER or ADMIN');
+    // }
   }
 
   @Delete('/remove/:userName')
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async removeUser(@Param('userName')userName: string): Promise<ServiceResponse> {
-    if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
+    // if (await this.accessService.getAccess() === EAccess.MANAGER || await this.accessService.getAccess() === EAccess.ADMIN) {
       const user: UserInterface = await this.userService.findByUserName(userName);
       if (!user) {
         return ServiceResponse.error(`user \"${userName}\" not found`);
       } else {
         return ServiceResponse.success(await this.userService.removeUser(userName));
       }
-    } else {
-      return ServiceResponse.error('You don\'t have access to create a record, Please log In as MANAGER or ADMIN');
-    }
+    // } else {
+    //   return ServiceResponse.error('You don\'t have access to create a record, Please log In as MANAGER or ADMIN');
+    // }
   }
 
   @Put('/update')

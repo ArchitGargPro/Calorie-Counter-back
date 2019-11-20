@@ -1,6 +1,9 @@
 import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany, Entity } from 'typeorm';
 import UserInterface from '../../interfaces/user.interface';
 import MealEntity from './meal.entity';
+import EUserStatus from '../../enums/user-status.enum';
+import ServiceResponse from '../../services/ServiceResponse';
+import EAccess from '../../enums/access.enum';
 
 @Entity()
 class UserEntity extends BaseEntity {
