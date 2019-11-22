@@ -1,32 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import UserEntity from '../db/entities/user.entity';
-import JWT from 'jsonwebtoken';
-import ConfigService from './config.service';
+import * as JWT from 'jsonwebtoken';
 import EMessages from '../enums/EMessages';
-import EUserStatus from '../enums/user-status.enum';
 import ServiceResponse from './ServiceResponse';
 
 @Injectable()
 export default class AuthService {
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {}
+  private mySecret = 'topSecret';
 
   public async generateJWTToken(user: UserEntity) {
     const payload = {
-      userName: user.userName,
+      user_: user,
     };
     return JWT.sign(payload,
-      'secret',
+      this.mySecret,
       {});
   }
 
   public async validateJWTToken(jwtToken: string): Promise<ServiceResponse> {
     try {
-      const decoded: any = JWT.verify(jwtToken, this.configService.get('JWT_SECRET'));
-      const {user_id} = decoded;
-      const user = await UserEntity.findOne({where: {id: user_id}});
+      const decoded: any = JWT.verify(jwtToken, this.mySecret);
+      const { user_ } = decoded;
+      const { userName } = user_;
+      const user = await UserEntity.findByUserName(userName);
       if (!user) {
         return ServiceResponse.error(EMessages.INVALID_AUTHENTICATION_TOKEN);
       }

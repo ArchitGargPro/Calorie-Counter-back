@@ -30,7 +30,7 @@ class UserEntity extends BaseEntity {
         return UserEntity.findOne({ where: {id} });
     }
 
-    public static async findByUserName(userName: string): Promise<UserInterface> {
+    public static async findByUserName(userName: string): Promise<UserEntity> {
         return UserEntity.findOne({ where: {userName} });
     }
 

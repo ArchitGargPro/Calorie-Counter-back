@@ -12,7 +12,7 @@ class AuthenticationGuard implements CanActivate {
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const jwtToken = await (request).headers.jwttoken();
+    const jwtToken = await (request).headers.jwttoken;
     const user: UserEntity = await this.validateJWTToken(jwtToken);
     if (user) {
       request.user = user;
@@ -24,11 +24,12 @@ class AuthenticationGuard implements CanActivate {
   }
 
   public async validateJWTToken(token: string): Promise<UserEntity> {
-    const vr: ServiceResponse = await this.authService.validateJWTToken(token);
-    if (vr.success) {
-      return vr.data;
+    const response: ServiceResponse = await this.authService.validateJWTToken(token);
+
+    if (response.success) {
+      return response.data;
     } else {
-      throw new UnauthorizedException(vr.message);
+      throw new UnauthorizedException(response.message);
     }
   }
 }

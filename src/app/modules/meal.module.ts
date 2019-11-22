@@ -3,17 +3,18 @@ import MealController from '../controllers/meal.controller';
 import { MealService } from '../services/meal.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import MealEntity from '../db/entities/meal.entity';
-import AccessModule from './access.module';
-import { AccessService } from '../services/access.service';
+import AuthenticationGuard from '../guards/authentication.guard';
+import RolesGuard from '../guards/roles.guard';
+import EAccess from '../enums/access.enum';
+import AuthService from '../services/auth.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MealEntity]), AccessModule],
+  imports: [TypeOrmModule.forFeature([MealEntity])],
   controllers: [MealController],
-  providers: [MealService, AccessService],
+  providers: [MealService, AuthService, AuthenticationGuard, {useValue: EAccess, provide: RolesGuard} ],
 })
 
 class MealModule {
-
 }
 
 export default MealModule;

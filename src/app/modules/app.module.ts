@@ -11,9 +11,8 @@ import MealModule from './meal.module';
 import UserEntity from '../db/entities/user.entity';
 import MealEntity from '../db/entities/meal.entity';
 import AccessModule from './access.module';
-import AccessEntity from '../db/entities/access.entity';
 import AccessController from '../controllers/access.controller';
-import { AccessService } from '../services/access.service';
+import AuthService from '../services/auth.service';
 
 @Module({
   imports: [UserModule,
@@ -22,11 +21,11 @@ import { AccessService } from '../services/access.service';
     TypeOrmModule.forRoot({
         type: 'sqlite',
         database: 'test.db',
-        entities: [UserEntity, MealEntity, AccessEntity],
+        entities: [UserEntity, MealEntity],
         synchronize: true,
         logging: true,
   })],
   controllers: [AppController, UserController, MealController, AccessController],
-  providers: [AppService, UserService, MealService, AccessService],
+  providers: [AppService, AuthService, UserService, MealService],
 })
 export class AppModule {}

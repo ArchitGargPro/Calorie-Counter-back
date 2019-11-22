@@ -10,7 +10,7 @@ export class UserService {
     return await UserEntity.find();
   }
 
-  async findByUserName(userName: string): Promise<UserInterface> {
+  async findByUserName(userName: string): Promise<UserEntity> {
     return await UserEntity.findByUserName(userName);
   }
 

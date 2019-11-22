@@ -2,14 +2,13 @@ import { Injectable } from '@nestjs/common';
 import MealEntity from '../db/entities/meal.entity';
 import { CreateMealDTO } from '../schema/meal.schema';
 import * as moment from 'moment';
-import AccessEntity from '../db/entities/access.entity';
 import UserEntity from '../db/entities/user.entity';
 
 @Injectable()
 export class MealService {
 
-  async getAll(): Promise<MealEntity[] | string> {
-    return this.getMeal(await AccessEntity.getCurrentUser());
+  async getAll(userName: string): Promise<MealEntity[] | string> {
+    return this.getMeal(userName);
   }
 
   async getMeal(userName: string): Promise<MealEntity[] | string> {
@@ -57,14 +56,13 @@ export class MealService {
     }
   }
 
-  async insert(mealDetails: CreateMealDTO): Promise<MealEntity> {
+  async insert(mealDetails: CreateMealDTO, userName: string): Promise<MealEntity> {
     const meal = new MealEntity();
     meal.title = mealDetails.title;
     meal.calorie = mealDetails.calorie;
     const d = new Date();
     meal.date =  d.getDate().toString(10) + '/' + (d.getMonth() + 1).toString() + '/' + d.getFullYear();
     meal.time =  d.getHours().toString() + ':' + (d.getMinutes() + 1).toString() + ':' + d.getSeconds().toString();
-    const userName = await AccessEntity.getCurrentUser();
     meal.userId = await UserEntity.getUserByUserName(userName);
     return await meal.save();
   }
