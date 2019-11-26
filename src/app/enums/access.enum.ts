@@ -1,6 +1,5 @@
 enum EAccess {
-  DEFAULT,
-  USER,
+  USER = 1,
   MANAGER,
   ADMIN,
 }

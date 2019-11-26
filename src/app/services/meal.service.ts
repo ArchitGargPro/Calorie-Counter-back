@@ -3,6 +3,7 @@ import MealEntity from '../db/entities/meal.entity';
 import { CreateMealDTO } from '../schema/meal.schema';
 import * as moment from 'moment';
 import UserEntity from '../db/entities/user.entity';
+import EMessages from '../enums/EMessages';
 
 @Injectable()
 export class MealService {
@@ -71,7 +72,7 @@ export class MealService {
     const { title, calorie } = mealDetails;
     const meal: MealEntity = await MealEntity.findOne(id);
     if ( !meal ) {
-      return 'no meals found';
+      return EMessages.RESOURCE_NOT_FOUND;
     }
     if (!title && !calorie) {
       return 'enter value to be updated (title / calories)';
@@ -91,7 +92,7 @@ export class MealService {
     if (meal) {
       return await MealEntity.remove(meal);
     } else {
-      return `no meals found with this Id : ${id}`;
+      return EMessages.RESOURCE_NOT_FOUND + `no meals found with this Id : ${id}`;
     }
   }
 }

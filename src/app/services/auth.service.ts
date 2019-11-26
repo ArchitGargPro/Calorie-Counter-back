@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import UserEntity from '../db/entities/user.entity';
 import * as JWT from 'jsonwebtoken';
 import EMessages from '../enums/EMessages';
-import ServiceResponse from './ServiceResponse';
+import ServiceResponse from '../utils/ServiceResponse';
 
 @Injectable()
 export default class AuthService {

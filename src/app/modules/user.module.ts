@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserService } from '../services/user.service';
 import UserController from '../controllers/user.controller';
 import UserEntity from '../db/entities/user.entity';
-import AccessModule from './access.module';
 import AuthService from '../services/auth.service';
 import AuthenticationGuard from '../guards/authentication.guard';
 import EAccess from '../enums/access.enum';

@@ -16,16 +16,17 @@ import AuthService from '../services/auth.service';
 
 @Module({
   imports: [UserModule,
-            MealModule,
-            AccessModule,
+    MealModule,
+    AccessModule,
     TypeOrmModule.forRoot({
-        type: 'sqlite',
-        database: 'test.db',
-        entities: [UserEntity, MealEntity],
-        synchronize: true,
-        logging: true,
-  })],
+      type: 'sqlite',
+      database: 'test.db',
+      entities: [UserEntity, MealEntity],
+      synchronize: true,
+      logging: false,
+    })],
   controllers: [AppController, UserController, MealController, AccessController],
   providers: [AppService, AuthService, UserService, MealService],
 })
+
 export class AppModule {}

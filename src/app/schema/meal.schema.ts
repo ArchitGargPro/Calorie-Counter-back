@@ -3,16 +3,6 @@ interface CreateMealDTO {
   calorie: number;
 }
 
-interface UpdateMealTitleDTO {
-  id: number;
-  title: string;
-}
-
-interface UpdateMealCalorieDTO {
-  id: number;
-  calorie: number;
-}
-
 interface IDates {
   fromDate: string;
   toDate: string;
@@ -25,8 +15,6 @@ interface ITime {
 
 export {
   CreateMealDTO,
-  UpdateMealCalorieDTO,
-  UpdateMealTitleDTO,
   IDates,
   ITime,
 };
