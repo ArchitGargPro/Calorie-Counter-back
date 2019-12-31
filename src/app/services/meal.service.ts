@@ -1,30 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import MealEntity from '../db/entities/meal.entity';
-import { CreateMealDTO } from '../schema/meal.schema';
+import { CreateMealDTO, IDates, ITime } from '../schema/meal.schema';
 import * as moment from 'moment';
 import UserEntity from '../db/entities/user.entity';
 import EMessages from '../enums/EMessages';
+import ServiceResponse from '../utils/ServiceResponse';
 
 @Injectable()
 export class MealService {
 
-  async getAll(userName: string): Promise<MealEntity[] | string> {
-    return this.getMeal(userName);
+  async getAll(userName: string): Promise<ServiceResponse> {
+    return await this.getMeal(userName);
   }
 
-  async getMeal(userName: string): Promise<MealEntity[] | string> {
+  async getMeal(userName: string): Promise<ServiceResponse> {
     const meals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(userName));
     if ( meals.length === 0 ) {
-      return 'no meals found';
+      return ServiceResponse.error('no meals found');
     } else {
-      return meals;
+      return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
     }
   }
 
-  async getMealByDate( fromDate: string , toDate: string): Promise<MealEntity[] | string> {
-    const startDate = moment(fromDate , 'DD/MM/YYYY');
-    const endDate = moment(toDate , 'DD/MM/YYYY');
-    const allMeals: MealEntity[] = await MealEntity.find();
+  async getMealByDate( dates: IDates): Promise<ServiceResponse> {
+    const startDate = moment(dates.fromDate , 'DD/MM/YYYY');
+    const endDate = moment(dates.toDate , 'DD/MM/YYYY');
+    const allMeals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(dates.userName));
     const meals: MealEntity[] = [];
     for (const meal of allMeals) {
       const mealDate = moment( meal.date, 'DD/MM/YYYY');
@@ -33,16 +34,16 @@ export class MealService {
       }
     }
     if ( meals.length === 0 ) {
-      return 'no meals found';
+      return ServiceResponse.error('no meals found');
     } else {
-      return meals;
+      return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
     }
   }
 
-  async getMealByTime( fromTime: string , toTime: string): Promise<MealEntity[] | string> {
-    const startTime = moment(fromTime , 'HH:mm:ss');
-    const endTime = moment(toTime , 'HH:mm:ss');
-    const allMeals: MealEntity[] = await MealEntity.find();
+  async getMealByTime( time: ITime): Promise<ServiceResponse> {
+    const startTime = moment(time.fromTime , 'HH:mm:ss');
+    const endTime = moment(time.toTime , 'HH:mm:ss');
+    const allMeals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(time.userName));
     const meals: MealEntity[] = [];
     for ( const meal of allMeals) {
       const mealTime = moment( meal.time, 'HH:mm:ss');
@@ -51,13 +52,13 @@ export class MealService {
       }
     }
     if ( meals.length === 0 ) {
-      return 'no meals found';
+      return ServiceResponse.error('no meals found');
     } else {
-      return meals;
+      return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
     }
   }
 
-  async insert(mealDetails: CreateMealDTO, userName: string): Promise<MealEntity> {
+  async insert(mealDetails: CreateMealDTO, userName: string): Promise<ServiceResponse> {
     const meal = new MealEntity();
     meal.title = mealDetails.title;
     meal.calorie = mealDetails.calorie;
@@ -65,17 +66,17 @@ export class MealService {
     meal.date =  d.getDate().toString(10) + '/' + (d.getMonth() + 1).toString() + '/' + d.getFullYear();
     meal.time =  d.getHours().toString() + ':' + (d.getMinutes() + 1).toString() + ':' + d.getSeconds().toString();
     meal.userId = await UserEntity.getUserByUserName(userName);
-    return await meal.save();
+    return ServiceResponse.success(await meal.save());
   }
 
-  async update(id: number , mealDetails: CreateMealDTO): Promise<MealEntity | string> {
+  async update(id: number , mealDetails: CreateMealDTO): Promise<ServiceResponse> {
     const { title, calorie } = mealDetails;
     const meal: MealEntity = await MealEntity.findOne(id);
     if ( !meal ) {
-      return EMessages.RESOURCE_NOT_FOUND;
+      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
     if (!title && !calorie) {
-      return 'enter value to be updated (title / calories)';
+      return ServiceResponse.error('enter value to be updated (title / calories)');
     } else {
       if (title) {
         meal.title = title;
@@ -84,15 +85,15 @@ export class MealService {
         meal.calorie = calorie;
       }
     }
-    return await meal.save();
+    return ServiceResponse.success(await meal.save(), EMessages.RESOURCE_FOUND);
   }
 
-  async delete(id: number): Promise<any> {
+  async delete(id: number): Promise<ServiceResponse> {
     const meal: MealEntity = await MealEntity.findOne(id);
     if (meal) {
-      return await MealEntity.remove(meal);
+      return ServiceResponse.success(await MealEntity.remove(meal));
     } else {
-      return EMessages.RESOURCE_NOT_FOUND + `no meals found with this Id : ${id}`;
+      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + `no meals found with this Id : ${id}`);
     }
   }
 }

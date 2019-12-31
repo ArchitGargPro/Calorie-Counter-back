@@ -1,29 +1,15 @@
 interface CreateUserDTO {
+  name: string;
   userName: string;
   password: string;
-  access: number;
+  access?: number;
 }
 
 interface UpdateUserDTO {
   userName: string;
-  password: string;
-  access: number;
-  calorie: number;
-}
-
-interface UpdateUserPasswordDTO {
-  userName: string;
-  password: string;
-}
-
-interface UpdateUserAccessDTO {
-  userName: string;
-  access: number;
-}
-
-interface UpdateUserExpectation {
-  userName: string;
-  calorie: number;
+  password?: string;
+  access?: number;
+  calorie?: number;
 }
 
 enum EDefault {
@@ -33,8 +19,5 @@ enum EDefault {
 export {
   CreateUserDTO,
   UpdateUserDTO,
-  UpdateUserAccessDTO,
-  UpdateUserPasswordDTO,
-  UpdateUserExpectation,
   EDefault,
 };

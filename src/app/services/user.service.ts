@@ -1,43 +1,112 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDTO, EDefault, UpdateUserAccessDTO, UpdateUserExpectation, UpdateUserPasswordDTO } from '../schema/user.schema';
+import { CreateUserDTO, EDefault, UpdateUserDTO } from '../schema/user.schema';
 import UserEntity from '../db/entities/user.entity';
+import ServiceResponse from '../utils/ServiceResponse';
+import EMessages from '../enums/EMessages';
+import EAccess from '../enums/access.enum';
 
 @Injectable()
 export class UserService {
 
-  async findAll(): Promise<UserEntity[]> {
-    return await UserEntity.find();
+  async findAll(): Promise<ServiceResponse> {
+    const user: UserEntity[] = await UserEntity.find();
+    if (user.length === 0) {
+      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
+    }
+    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
   }
 
-  async findByUserName(userName: string): Promise<UserEntity> {
-    return await UserEntity.findByUserName(userName);
+  async findByUserName(userName: string): Promise<ServiceResponse> {
+    const user: UserEntity = await UserEntity.findByUserName(userName);
+    if (!user) {
+      return ServiceResponse.error(`user \"${userName}\" not found`);
+    }
+    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
   }
 
-  async createUser(createUserDTO: CreateUserDTO): Promise<UserEntity> {
-    const user: UserEntity = await UserEntity.create(createUserDTO);
-    user.calorie = EDefault.EXPECTED_CALORIE;
-    return await UserEntity.save(user);
+  async createUser(createUserDTO: CreateUserDTO, access): Promise<ServiceResponse> {
+    const user: UserEntity = await UserEntity.findByUserName(createUserDTO.userName);
+    if (!user) {
+      if (!createUserDTO.password) {
+        return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
+      } else {
+        if (access === EAccess.MANAGER || !createUserDTO.access || access === EAccess.ANONYMOUS) {
+          createUserDTO.access = EAccess.USER;
+        }
+        const newU: UserEntity = await UserEntity.create(createUserDTO);
+        newU.calorie = EDefault.EXPECTED_CALORIE;
+        return ServiceResponse.success(await UserEntity.save(newU));
+      }
+    } else {
+      return ServiceResponse.error(EMessages.INVALID_CREDENTIALS + ` : userName \"${createUserDTO.userName}\" already in use`);
+    }
   }
 
-  async updateUserPassword(updateUserPasswordDTO: UpdateUserPasswordDTO): Promise<UserEntity> {
-    const user: UserEntity = await UserEntity.getUserByUserName(updateUserPasswordDTO.userName);
-    user.password = updateUserPasswordDTO.password;
-    return await UserEntity.save(user);
+  async updateUser(updateUserDTO: UpdateUserDTO, thisUser: UserEntity): Promise<ServiceResponse> {
+    const user: UserEntity = await UserEntity.findByUserName(updateUserDTO.userName);
+    if (!user) {
+      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + `: user \"${updateUserDTO.userName}\" not found`);
+    }
+    if ( thisUser.access === EAccess.USER ) { // USER
+      if ( !updateUserDTO.calorie && !updateUserDTO.password) {
+        return ServiceResponse.error(EMessages.BAD_REQUEST);
+      } else {
+        updateUserDTO.userName = thisUser.userName;
+        if ( updateUserDTO.password ) {
+          user.password = updateUserDTO.password;
+        } else if (updateUserDTO.calorie) {
+          user.calorie = updateUserDTO.calorie;
+        }
+        return ServiceResponse.success(await UserEntity.save(user));
+      }
+    } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
+      if (!updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
+        return ServiceResponse.error(EMessages.BAD_REQUEST);
+      } else {
+        if (updateUserDTO.password && (user.access === EAccess.USER || user === thisUser)) {
+          user.password = updateUserDTO.password;
+        } else {
+          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        }
+        if (updateUserDTO.calorie && user.access === EAccess.USER) {
+          user.calorie = updateUserDTO.calorie;
+        } else {
+          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        }
+        if (updateUserDTO.access === EAccess.MANAGER && user.access === EAccess.USER) {
+          user.access = updateUserDTO.access;
+        } else {
+          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        }
+        return ServiceResponse.success(await UserEntity.save(user));
+      }
+    } else { // ADMIN
+      if ( !updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
+        return ServiceResponse.error(EMessages.BAD_REQUEST);
+      } else {
+        if (  updateUserDTO.password ) {
+          user.password = updateUserDTO.password;
+        }
+        if ( updateUserDTO.calorie ) {
+          user.calorie = updateUserDTO.calorie;
+        }
+        if ( updateUserDTO.access ) {
+          user.access = updateUserDTO.access;
+        }
+        return ServiceResponse.success(await UserEntity.save(user));
+      }
+    }
   }
 
-  async updateUserAccess(updateUserAccessDTO: UpdateUserAccessDTO): Promise<UserEntity> {
-    const user: UserEntity = await UserEntity.getUserByUserName(updateUserAccessDTO.userName);
-    user.access = updateUserAccessDTO.access;
-    return await UserEntity.save(user);
-  }
-
-  async updateUserExpectation(updateUserExpectationDTO: UpdateUserExpectation): Promise<UserEntity> {
-    const user: UserEntity = await UserEntity.getUserByUserName(updateUserExpectationDTO.userName);
-    user.calorie = updateUserExpectationDTO.calorie;
-    return await UserEntity.save(user);
-  }
-
-  async removeUser(userName: string): Promise<UserEntity> {
-    return await UserEntity.removeUser(userName);
+  async removeUser(userName: string, access): Promise<ServiceResponse> {
+    const user: UserEntity = await UserEntity.findByUserName(userName);
+    if (!user) {
+      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + ` : user not found : ${userName}`);
+    }
+    if ( (access === EAccess.MANAGER && user.access === EAccess.USER) || access === EAccess.ADMIN ) {
+      return ServiceResponse.success(await UserEntity.removeUser(userName));
+    } else {
+      return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+    }
   }
 }

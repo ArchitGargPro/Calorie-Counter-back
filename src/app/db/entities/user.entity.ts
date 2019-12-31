@@ -14,6 +14,9 @@ class UserEntity extends BaseEntity {
     password: string;
 
     @Column()
+    name: string;
+
+    @Column()
     access: number;
 
     @Column()

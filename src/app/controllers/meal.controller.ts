@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { CreateMealDTO, IDates, ITime } from '../schema/meal.schema';
+import { CreateMealDTO,  IDates, ITime } from '../schema/meal.schema';
 import { MealService } from '../services/meal.service';
 import EAccess from '../enums/access.enum';
 import ServiceResponse from '../utils/ServiceResponse';
@@ -14,46 +14,54 @@ export default class MealController {
   constructor(private readonly mealService: MealService) {
   }
 
-  @Post()
-  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER]))
+  @Post('/new')
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async postMeal( @Body() meal: CreateMealDTO, @GetUser() thisUser: UserEntity): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.insert(meal, thisUser.userName));
+    if (thisUser.access === EAccess.ADMIN) {
+      return await this.mealService.insert(meal, meal.userName);
+    }
+    return await this.mealService.insert(meal, thisUser.userName);
   }
 
   @Get()
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER]))
   async getAllMeals( @GetUser() thisUser: UserEntity ): Promise<ServiceResponse> {
-    return ServiceResponse.success(await this.mealService.getAll(thisUser.userName));
+    return await this.mealService.getAll(thisUser.userName);
   }
 
   @Get('/byDate')
-  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER]))
-  async getMealsByDate(@Body() dates: IDates ): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.getMealByDate(dates.fromDate, dates.toDate));
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
+  async getMealsByDate(@Body() dates: IDates, @GetUser() thisUser: UserEntity ): Promise<ServiceResponse> {
+    if (thisUser.access === EAccess.USER) {
+      dates.userName = thisUser.userName;
+    }
+    return await this.mealService.getMealByDate(dates);
   }
 
   @Get('/byTime')
-  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER]))
-  async getMealsByTime(@Body() time: ITime ): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.getMealByTime(time.fromTime, time.toTime));
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
+  async getMealsByTime(@Body() time: ITime, @GetUser() thisUser: UserEntity ): Promise<ServiceResponse> {
+    if (thisUser.access === EAccess.USER) {
+      time.userName = thisUser.userName;
+    }
+    return await this.mealService.getMealByTime(time);
   }
 
   @Get('/of/:userName')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.ADMIN]))
   async getMeal(@Param('userName') userName: string): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.getMeal(userName));
+      return await this.mealService.getMeal(userName);
   }
 
   @Put(':id')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async updateMeal( @Param('id') id: number , @Body() meal: CreateMealDTO): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.update(id , meal));
+      return await this.mealService.update(id , meal);
   }
 
   @Delete(':id')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async deleteMeal(@Param('id') id: number): Promise<ServiceResponse> {
-      return ServiceResponse.success(await this.mealService.delete(id));
+      return await this.mealService.delete(id);
   }
-
 }

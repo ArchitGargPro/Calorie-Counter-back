@@ -5,6 +5,7 @@ enum EMessages {
   RESOURCE_FOUND = 'Resource found',
   UNAUTHORIZED_REQUEST = 'Unauthorized access',
   INVALID_AUTHENTICATION_TOKEN = 'Invalid authentication token',
+  BAD_REQUEST = 'Bad Request',
 }
 
 export default EMessages;
