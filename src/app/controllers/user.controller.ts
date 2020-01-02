@@ -7,10 +7,16 @@ import ServiceResponse from '../utils/ServiceResponse';
 import AuthenticationGuard from '../guards/authentication.guard';
 import RolesGuard from '../guards/roles.guard';
 import { GetUser } from '../utils/getUser.decorator';
+import LoginDTO from '../schema/access.schema';
 
 @Controller('user')
 export default class UserController {
   constructor(private readonly userService: UserService) {
+  }
+
+  @Post('login')
+  async login(@Body() loginCredentials: LoginDTO): Promise<ServiceResponse> {
+    return await this.userService.login(loginCredentials);
   }
 
   @Get()

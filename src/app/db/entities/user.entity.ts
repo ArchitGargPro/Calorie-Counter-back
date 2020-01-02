@@ -1,5 +1,7 @@
-import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany, Entity } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany, Entity, BeforeInsert } from 'typeorm';
 import MealEntity from './meal.entity';
+import * as Bcrypt from 'bcryptjs';
+import lodash from 'lodash';
 
 @Entity()
 class UserEntity extends BaseEntity {
@@ -24,6 +26,15 @@ class UserEntity extends BaseEntity {
 
     @OneToMany(() => MealEntity, meal => meal.userId)
     meals: MealEntity[];
+
+    @BeforeInsert()
+    public async beforeInsertHooks() {
+        this.password = Bcrypt.hashSync(this.password, 10); // Hash password
+    }
+
+    public static toJSON(userEntity: UserEntity | UserEntity[]): Partial<UserEntity> {
+        return lodash.pick(userEntity, ['name', 'userName', 'access', 'calorie']);
+    }
 
     public static async findById(id: number): Promise<UserEntity> {
         return UserEntity.findOne({ where: {id} });

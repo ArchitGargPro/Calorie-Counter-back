@@ -11,7 +11,6 @@ import MealModule from './meal.module';
 import UserEntity from '../db/entities/user.entity';
 import MealEntity from '../db/entities/meal.entity';
 import AccessModule from './access.module';
-import AccessController from '../controllers/access.controller';
 import AuthService from '../services/auth.service';
 
 @Module({
@@ -25,7 +24,7 @@ import AuthService from '../services/auth.service';
       synchronize: true,
       logging: false,
     })],
-  controllers: [AppController, UserController, MealController, AccessController],
+  controllers: [AppController, UserController, MealController],
   providers: [AppService, AuthService, UserService, MealService],
 })
 
