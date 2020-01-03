@@ -14,7 +14,7 @@ export class MealService {
   }
 
   async getMeal(userName: string): Promise<ServiceResponse> {
-    const meals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(userName));
+    const meals: MealEntity[] = await MealEntity.findByUser(await UserEntity.findByUserName(userName));
     if ( meals.length === 0 ) {
       return ServiceResponse.error('no meals found');
     } else {

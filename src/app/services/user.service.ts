@@ -6,7 +6,7 @@ import EMessages from '../enums/EMessages';
 import EAccess from '../enums/access.enum';
 import LoginDTO from '../schema/access.schema';
 import AuthService from './auth.service';
-import BCrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
@@ -18,7 +18,7 @@ export class UserService {
     if (user.length === 0) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
-    return ServiceResponse.success(UserEntity.toJSON(user), EMessages.RESOURCE_FOUND);
+    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
   }
 
   async findByUserName(userName: string): Promise<ServiceResponse> {
@@ -26,21 +26,23 @@ export class UserService {
     if (!user) {
       return ServiceResponse.error(`user \"${userName}\" not found`);
     }
-    return ServiceResponse.success(UserEntity.toJSON(user), EMessages.RESOURCE_FOUND);
+    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
   }
 
-  async createUser(createUserDTO: CreateUserDTO, access): Promise<ServiceResponse> {
+  async createUser(createUserDTO: CreateUserDTO, thisUser): Promise<ServiceResponse> {
     const user: UserEntity = await UserEntity.findByUserName(createUserDTO.userName);
     if (!user) {
       if (!createUserDTO.password) {
         return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
       } else {
-        if (access === EAccess.MANAGER || !createUserDTO.access || access === EAccess.ANONYMOUS) {
+        if (!thisUser) {
+          createUserDTO.access = EAccess.USER;
+        } else if (thisUser.access === EAccess.MANAGER || thisUser.access === EAccess.ANONYMOUS || !createUserDTO.access) {
           createUserDTO.access = EAccess.USER;
         }
         const newU: UserEntity = await UserEntity.create(createUserDTO);
         newU.calorie = EDefault.EXPECTED_CALORIE;
-        return ServiceResponse.success(UserEntity.toJSON(await UserEntity.save(newU)));
+        return ServiceResponse.success(await UserEntity.save(newU));
       }
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS + ` : userName \"${createUserDTO.userName}\" already in use`);
@@ -62,7 +64,7 @@ export class UserService {
         } else if (updateUserDTO.calorie) {
           user.calorie = updateUserDTO.calorie;
         }
-        return ServiceResponse.success(UserEntity.toJSON(await UserEntity.save(user)));
+        return ServiceResponse.success(await UserEntity.save(user));
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
       if (!updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
@@ -83,7 +85,7 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        return ServiceResponse.success(UserEntity.toJSON(await UserEntity.save(user)));
+        return ServiceResponse.success(await UserEntity.save(user));
       }
     } else { // ADMIN
       if ( !updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
@@ -98,7 +100,7 @@ export class UserService {
         if ( updateUserDTO.access ) {
           user.access = updateUserDTO.access;
         }
-        return ServiceResponse.success(UserEntity.toJSON(await UserEntity.save(user)));
+        return ServiceResponse.success(await UserEntity.save(user));
       }
     }
   }
@@ -109,7 +111,7 @@ export class UserService {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + ` : user not found : ${userName}`);
     }
     if ( (access === EAccess.MANAGER && user.access === EAccess.USER) || access === EAccess.ADMIN ) {
-      return ServiceResponse.success(UserEntity.toJSON(await UserEntity.removeUser(userName)));
+      return ServiceResponse.success(await UserEntity.removeUser(userName));
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
     }
@@ -121,9 +123,13 @@ export class UserService {
     if ( !user ) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
-    const isAuthenticated = await BCrypt.compare(password, user.password);
+    const isAuthenticated = await bcrypt.compare(password, user.password);
     if (isAuthenticated) {
-      return ServiceResponse.success(await this.authService.generateJWTToken(user), 'Logged in Successfully');
+      return ServiceResponse.success(
+        {
+          jwttoken: await this.authService.generateJWTToken(user),
+          user: await UserEntity.findByUserName(userName),
+        }, 'Logged in Successfully');
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }

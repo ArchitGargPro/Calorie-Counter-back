@@ -1,7 +1,6 @@
 import { PrimaryGeneratedColumn, Column, BaseEntity, OneToMany, Entity, BeforeInsert } from 'typeorm';
 import MealEntity from './meal.entity';
 import * as Bcrypt from 'bcryptjs';
-import lodash from 'lodash';
 
 @Entity()
 class UserEntity extends BaseEntity {
@@ -32,24 +31,25 @@ class UserEntity extends BaseEntity {
         this.password = Bcrypt.hashSync(this.password, 10); // Hash password
     }
 
-    public static toJSON(userEntity: UserEntity | UserEntity[]): Partial<UserEntity> {
-        return lodash.pick(userEntity, ['name', 'userName', 'access', 'calorie']);
-    }
+    // public toJSON(userEntity: UserEntity | UserEntity[]): any {
+    //     // return lodash.pick(userEntity, ['name', 'userName', 'access', 'calorie']);
+    //     return userEntity;
+    // }
 
     public static async findById(id: number): Promise<UserEntity> {
-        return UserEntity.findOne({ where: {id} });
+        return await UserEntity.findOne({ where: {id} });
     }
 
     public static async findByUserName(userName: string): Promise<UserEntity> {
-        return UserEntity.findOne({ where: {userName} });
+        return await UserEntity.findOne({ where: {userName} });
     }
 
     public static async getUserByUserName(userName: string): Promise<UserEntity> {
-        return UserEntity.findOne({ where: {userName} });
+        return await UserEntity.findOne({ where: {userName} });
     }
 
     public static async removeUser(userName: string): Promise<UserEntity> {
-        return UserEntity.remove(await UserEntity.findOne({ where: {userName} }));
+        return await UserEntity.remove(await UserEntity.findOne({ where: {userName} }));
     }
 }
 export default UserEntity;

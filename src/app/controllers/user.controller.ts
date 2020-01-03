@@ -32,9 +32,14 @@ export default class UserController {
   }
 
   @Post('/new')
-  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.ANONYMOUS, EAccess.MANAGER, EAccess.ADMIN]))
+  @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async createUser(@Body() createUserDTO: CreateUserDTO, @GetUser() thisUser: UserEntity): Promise<ServiceResponse> {
-    return await this.userService.createUser(createUserDTO, thisUser.access);
+    return await this.userService.createUser(createUserDTO, thisUser);
+  }
+
+  @Post('/createAccount')
+  async createAccount(@Body() createUserDTO: CreateUserDTO): Promise<ServiceResponse> {
+    return await this.userService.createUser(createUserDTO, {access: EAccess.ANONYMOUS});
   }
 
   @Delete('/remove/:userName')

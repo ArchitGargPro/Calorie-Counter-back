@@ -22,7 +22,7 @@ import AuthService from '../services/auth.service';
       database: 'test.db',
       entities: [UserEntity, MealEntity],
       synchronize: true,
-      logging: false,
+      logging: true,
     })],
   controllers: [AppController, UserController, MealController],
   providers: [AppService, AuthService, UserService, MealService],
