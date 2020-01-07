@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { CreateMealDTO,  IDates, ITime } from '../schema/meal.schema';
+import { CreateMealDTO, IDates, ITime, IUpdateMealDTO } from '../schema/meal.schema';
 import { MealService } from '../services/meal.service';
 import EAccess from '../enums/access.enum';
 import ServiceResponse from '../utils/ServiceResponse';
@@ -53,15 +53,15 @@ export default class MealController {
       return await this.mealService.getMeal(userName);
   }
 
-  @Put(':id')
+  @Put('/update')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async updateMeal( @Param('id') id: number , @Body() meal: CreateMealDTO): Promise<ServiceResponse> {
-      return await this.mealService.update(id , meal);
+  async updateMeal(@Body() meal: IUpdateMealDTO): Promise<ServiceResponse> {
+      return await this.mealService.update(meal);
   }
 
-  @Delete(':id')
+  @Delete('/delete')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async deleteMeal(@Param('id') id: number): Promise<ServiceResponse> {
+  async deleteMeal(@Body() id: number): Promise<ServiceResponse> {
       return await this.mealService.delete(id);
   }
 }

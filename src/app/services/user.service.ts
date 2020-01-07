@@ -6,7 +6,7 @@ import EMessages from '../enums/EMessages';
 import EAccess from '../enums/access.enum';
 import LoginDTO from '../schema/access.schema';
 import AuthService from './auth.service';
-import * as bcrypt from 'bcryptjs';
+import * as bcryprt from 'bcryptjs';
 
 @Injectable()
 export class UserService {
@@ -60,7 +60,7 @@ export class UserService {
       } else {
         updateUserDTO.userName = thisUser.userName;
         if ( updateUserDTO.password ) {
-          user.password = updateUserDTO.password;
+          user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         } else if (updateUserDTO.calorie) {
           user.calorie = updateUserDTO.calorie;
         }
@@ -71,7 +71,7 @@ export class UserService {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         if (updateUserDTO.password && (user.access === EAccess.USER || user === thisUser)) {
-          user.password = updateUserDTO.password;
+          user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
@@ -92,7 +92,7 @@ export class UserService {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         if (  updateUserDTO.password ) {
-          user.password = updateUserDTO.password;
+          user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         }
         if ( updateUserDTO.calorie ) {
           user.calorie = updateUserDTO.calorie;
@@ -123,7 +123,7 @@ export class UserService {
     if ( !user ) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
-    const isAuthenticated = await bcrypt.compare(password, user.password);
+    const isAuthenticated = await bcryprt.compare(password, user.password);
     if (isAuthenticated) {
       return ServiceResponse.success(
         {

@@ -16,8 +16,16 @@ interface ITime {
   userName?: string;
 }
 
+interface IUpdateMealDTO {
+  id: number;
+  title?: string;
+  calorie?: number;
+  userName?: string;
+}
+
 export {
   CreateMealDTO,
+  IUpdateMealDTO,
   IDates,
   ITime,
 };

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import MealEntity from '../db/entities/meal.entity';
-import { CreateMealDTO, IDates, ITime } from '../schema/meal.schema';
+import { CreateMealDTO, IDates, ITime, IUpdateMealDTO } from '../schema/meal.schema';
 import * as moment from 'moment';
 import UserEntity from '../db/entities/user.entity';
 import EMessages from '../enums/EMessages';
@@ -69,9 +69,9 @@ export class MealService {
     return ServiceResponse.success(await meal.save());
   }
 
-  async update(id: number , mealDetails: CreateMealDTO): Promise<ServiceResponse> {
+  async update(mealDetails: IUpdateMealDTO): Promise<ServiceResponse> {
     const { title, calorie } = mealDetails;
-    const meal: MealEntity = await MealEntity.findOne(id);
+    const meal: MealEntity = await MealEntity.findOne(mealDetails.id);
     if ( !meal ) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
