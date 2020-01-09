@@ -44,8 +44,8 @@ export default class UserController {
 
   @Delete('/remove/:userName')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
-  async removeUser(@Param('userName')userName: string, @GetUser() thisUser: UserEntity): Promise<ServiceResponse> {
-    return await this.userService.removeUser(userName, thisUser.access);
+  async removeUser(@Param('userName') userName: string, @GetUser() thisUser: UserEntity): Promise<ServiceResponse> {
+    return await this.userService.removeUser(userName, thisUser);
   }
 
   @Put('/update')

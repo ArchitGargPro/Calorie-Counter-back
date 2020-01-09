@@ -59,9 +59,9 @@ export default class MealController {
       return await this.mealService.update(meal);
   }
 
-  @Delete('/delete')
+  @Delete('/delete/:id')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async deleteMeal(@Body() id: number): Promise<ServiceResponse> {
+  async deleteMeal(@Param('id') id: number): Promise<ServiceResponse> {
       return await this.mealService.delete(id);
   }
 }

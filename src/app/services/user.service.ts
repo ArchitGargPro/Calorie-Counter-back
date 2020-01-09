@@ -7,6 +7,7 @@ import EAccess from '../enums/access.enum';
 import LoginDTO from '../schema/access.schema';
 import AuthService from './auth.service';
 import * as bcryprt from 'bcryptjs';
+import MealEntity from '../db/entities/meal.entity';
 
 @Injectable()
 export class UserService {
@@ -67,10 +68,12 @@ export class UserService {
         return ServiceResponse.success(await UserEntity.save(user));
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
-      if (!updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
+      if (!updateUserDTO.calorie
+        && (!updateUserDTO.password || updateUserDTO.password === user.password)
+        && !updateUserDTO.access) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
-        if (updateUserDTO.password && (user.access === EAccess.USER || user === thisUser)) {
+        if (updateUserDTO.password && updateUserDTO.password !== user.password && (user.access === EAccess.USER || user === thisUser)) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
@@ -88,10 +91,12 @@ export class UserService {
         return ServiceResponse.success(await UserEntity.save(user));
       }
     } else { // ADMIN
-      if ( !updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.access) {
+      if ( !updateUserDTO.calorie
+        && (!updateUserDTO.password || updateUserDTO.password === user.password)
+        && !updateUserDTO.access) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
-        if (  updateUserDTO.password ) {
+        if (  updateUserDTO.password && updateUserDTO.password !== user.password) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         }
         if ( updateUserDTO.calorie ) {
@@ -105,12 +110,15 @@ export class UserService {
     }
   }
 
-  async removeUser(userName: string, access): Promise<ServiceResponse> {
+  async removeUser(userName: string, thisUser: UserEntity): Promise<ServiceResponse> {
+    const access = thisUser.access;
     const user: UserEntity = await UserEntity.findByUserName(userName);
+    const meals: MealEntity[] = await MealEntity.findByUser(user);
+    await MealEntity.remove(meals);
     if (!user) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + ` : user not found : ${userName}`);
     }
-    if ( (access === EAccess.MANAGER && user.access === EAccess.USER) || access === EAccess.ADMIN ) {
+    if ( (access === EAccess.MANAGER && user.access === EAccess.USER) || access === EAccess.ADMIN && user !== thisUser) {
       return ServiceResponse.success(await UserEntity.removeUser(userName));
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
@@ -123,8 +131,7 @@ export class UserService {
     if ( !user ) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
-    const isAuthenticated = await bcryprt.compare(password, user.password);
-    if (isAuthenticated) {
+    if (await bcryprt.compare(password, user.password)) {
       return ServiceResponse.success(
         {
           jwttoken: await this.authService.generateJWTToken(user),

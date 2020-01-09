@@ -89,7 +89,7 @@ export class MealService {
   }
 
   async delete(id: number): Promise<ServiceResponse> {
-    const meal: MealEntity = await MealEntity.findOne(id);
+    const meal: MealEntity = await MealEntity.findOne({id});
     if (meal) {
       return ServiceResponse.success(await MealEntity.remove(meal));
     } else {

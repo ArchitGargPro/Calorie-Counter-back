@@ -29,7 +29,6 @@ class MealEntity extends BaseEntity {
   public static async findByUser(user: UserEntity): Promise<MealEntity[]> {
     return await MealEntity.find({where: {userId: user} });
   }
-
 }
 
 export default MealEntity;

@@ -12,6 +12,10 @@ interface UpdateUserDTO {
   calorie?: number;
 }
 
+interface DeleteUserDTO {
+  userName: string;
+}
+
 enum EDefault {
   EXPECTED_CALORIE = 2000,
 }
@@ -19,5 +23,6 @@ enum EDefault {
 export {
   CreateUserDTO,
   UpdateUserDTO,
+  DeleteUserDTO,
   EDefault,
 };
