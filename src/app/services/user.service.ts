@@ -8,18 +8,22 @@ import LoginDTO from '../schema/access.schema';
 import AuthService from './auth.service';
 import * as bcryprt from 'bcryptjs';
 import MealEntity from '../db/entities/meal.entity';
+import IUser from '../interfaces/IUser';
+import { IPaginationOptions, paginate } from 'nestjs-typeorm-paginate';
+import { getRepository } from 'typeorm';
 
 @Injectable()
 export class UserService {
 
   constructor(private readonly authService: AuthService) {}
 
-  async findAll(): Promise<ServiceResponse> {
-    const user: UserEntity[] = await UserEntity.find();
-    if (user.length === 0) {
+  async findAll(options: IPaginationOptions): Promise<ServiceResponse> {
+    const queryBuilder = getRepository(UserEntity).createQueryBuilder('user').select(['user.id', 'user.userName', 'user.name', 'user.access', 'user.calorie']);
+    const data = await paginate<IUser>(queryBuilder, options);
+    if (data.items.length === 0) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
-    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
   }
 
   async findByUserName(userName: string): Promise<ServiceResponse> {
@@ -27,7 +31,8 @@ export class UserService {
     if (!user) {
       return ServiceResponse.error(`user \"${userName}\" not found`);
     }
-    return ServiceResponse.success(user, EMessages.RESOURCE_FOUND);
+    const data: IUser = UserService.filter(user);
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
   }
 
   async createUser(createUserDTO: CreateUserDTO, thisUser): Promise<ServiceResponse> {
@@ -36,14 +41,16 @@ export class UserService {
       if (!createUserDTO.password) {
         return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
       } else {
-        if (!thisUser) {
-          createUserDTO.access = EAccess.USER;
-        } else if (thisUser.access === EAccess.MANAGER || thisUser.access === EAccess.ANONYMOUS || !createUserDTO.access) {
+        // if (!thisUser) {
+        //   createUserDTO.access = EAccess.USER;
+        // } else
+        if (thisUser.access === EAccess.MANAGER || thisUser.access === EAccess.ANONYMOUS || !createUserDTO.access) {
           createUserDTO.access = EAccess.USER;
         }
         const newU: UserEntity = await UserEntity.create(createUserDTO);
         newU.calorie = EDefault.EXPECTED_CALORIE;
-        return ServiceResponse.success(await UserEntity.save(newU));
+        const data: IUser = UserService.filter(await UserEntity.save(newU));
+        return ServiceResponse.success(data);
       }
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS + ` : userName \"${createUserDTO.userName}\" already in use`);
@@ -65,7 +72,8 @@ export class UserService {
         } else if (updateUserDTO.calorie) {
           user.calorie = updateUserDTO.calorie;
         }
-        return ServiceResponse.success(await UserEntity.save(user));
+        const data: IUser = UserService.filter(await UserEntity.save(user));
+        return ServiceResponse.success(data);
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
       if (!updateUserDTO.calorie
@@ -73,7 +81,9 @@ export class UserService {
         && !updateUserDTO.access) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
-        if (updateUserDTO.password && updateUserDTO.password !== user.password && (user.access === EAccess.USER || user === thisUser)) {
+        if (updateUserDTO.password
+          && updateUserDTO.password !== user.password
+          && (user.access === EAccess.USER && user.userName !== thisUser.userName)) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
@@ -88,7 +98,8 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        return ServiceResponse.success(await UserEntity.save(user));
+        const data: IUser = UserService.filter(await UserEntity.save(user));
+        return ServiceResponse.success(data);
       }
     } else { // ADMIN
       if ( !updateUserDTO.calorie
@@ -102,24 +113,27 @@ export class UserService {
         if ( updateUserDTO.calorie ) {
           user.calorie = updateUserDTO.calorie;
         }
-        if ( updateUserDTO.access ) {
+        if ( updateUserDTO.access && user.userName !== thisUser.userName) {
           user.access = updateUserDTO.access;
         }
-        return ServiceResponse.success(await UserEntity.save(user));
+        const data: IUser = UserService.filter(await UserEntity.save(user));
+        return ServiceResponse.success(data);
       }
     }
   }
 
   async removeUser(userName: string, thisUser: UserEntity): Promise<ServiceResponse> {
-    const access = thisUser.access;
     const user: UserEntity = await UserEntity.findByUserName(userName);
     const meals: MealEntity[] = await MealEntity.findByUser(user);
-    await MealEntity.remove(meals);
     if (!user) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + ` : user not found : ${userName}`);
     }
-    if ( (access === EAccess.MANAGER && user.access === EAccess.USER) || access === EAccess.ADMIN && user !== thisUser) {
-      return ServiceResponse.success(await UserEntity.removeUser(userName));
+    // manager can delete user || admin can delete anyone except himself
+    if ( (thisUser.access === EAccess.MANAGER && user.access === EAccess.USER)
+      || (thisUser.access === EAccess.ADMIN && userName !== thisUser.userName)) {
+      await MealEntity.remove(meals);
+      const data: IUser = UserService.filter(await UserEntity.removeUser(userName));
+      return ServiceResponse.success(data);
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
     }
@@ -131,14 +145,28 @@ export class UserService {
     if ( !user ) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
+    const data: IUser = UserService.filter(await UserEntity.findByUserName(userName));
     if (await bcryprt.compare(password, user.password)) {
       return ServiceResponse.success(
         {
           jwttoken: await this.authService.generateJWTToken(user),
-          user: await UserEntity.findByUserName(userName),
+          user: data,
         }, 'Logged in Successfully');
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
+  }
+
+  // to remove password from an array of UserEntity
+  private filterArray(userEntity: UserEntity[]): IUser[] {
+    return userEntity.map((user: UserEntity): IUser => {
+      delete user.password;
+      return user;
+    });
+  }
+
+  private static filter(user: UserEntity): IUser {
+    delete user.password;
+    return user;
   }
 }

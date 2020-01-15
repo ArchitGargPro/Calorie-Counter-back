@@ -31,9 +31,13 @@ class UserEntity extends BaseEntity {
         this.password = Bcrypt.hashSync(this.password, 10); // Hash password
     }
 
-    // public toJSON(userEntity: UserEntity | UserEntity[]): any {
-    //     // return lodash.pick(userEntity, ['name', 'userName', 'access', 'calorie']);
-    //     return userEntity;
+    // public static toJSONArray(userEntity: UserEntity[]): IUser[] {
+    //     return pick(userEntity, ['id', 'name', 'userName', 'access', 'calorie']);
+    //     // return userEntity;
+    // }
+    //
+    // public static toJSON(userEntity: UserEntity): IUser {
+    //     return pick(userEntity, ['id', 'name', 'userName', 'access', 'calorie']);
     // }
 
     public static async findById(id: number): Promise<UserEntity> {

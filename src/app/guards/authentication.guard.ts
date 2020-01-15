@@ -14,7 +14,6 @@ class AuthenticationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const jwtToken = await (request).headers.jwttoken;
     const user: UserEntity = await this.validateJWTToken(jwtToken);
-    console.log(user);
     if (user) {
       request.user = user;
       request.jwtToken = jwtToken;
