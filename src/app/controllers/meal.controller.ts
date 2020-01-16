@@ -31,7 +31,6 @@ export default class MealController {
   //   limit = limit > 100 ? 100 : limit;
   //   return await this.mealService.getMeal(thisUser.userName, {page, limit});
   // }
-
   // filtered content for admin
   @Get()
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))

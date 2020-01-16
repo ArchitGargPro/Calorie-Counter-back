@@ -5,8 +5,9 @@ import UserEntity from '../db/entities/user.entity';
 import EMessages from '../enums/EMessages';
 import ServiceResponse from '../utils/ServiceResponse';
 import { IPaginationOptions, paginate } from 'nestjs-typeorm-paginate';
-import { getRepository } from 'typeorm';
+import { Between, Like } from 'typeorm';
 import EAccess from '../enums/access.enum';
+import moment = require('moment-timezone');
 
 @Injectable()
 export class MealService {
@@ -26,48 +27,125 @@ export class MealService {
   // }
 
   async getMeals( filters: IFilters, thisUser: UserEntity, options: IPaginationOptions): Promise<ServiceResponse> {
+    if (filters.id) {
+      const meal: MealEntity[] = await MealEntity.find({
+        select: ['id', 'date', 'time', 'title', 'calorie'],
+        where: {
+          id: filters.id,
+        },
+      });
+      if (meal[0].userId === thisUser || thisUser.access === EAccess.ADMIN) {
+        return ServiceResponse.success(meal, EMessages.RESOURCE_FOUND);
+      } else {
+        return ServiceResponse.error(EMessages.PERMISSION_DENIED);
+      }
+    }
     if (thisUser.access === EAccess.USER) {
       filters.userName = thisUser.userName;
     }
-    const queryBuilder = getRepository(MealEntity).createQueryBuilder('meal');
-    if (filters.userName) {
-      const userEntity: UserEntity = await UserEntity.findByUserName(filters.userName);
-      if ( !userEntity ) {
-        return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
-      } else {
-        queryBuilder.andWhere('meal.userId = :user', {user: userEntity});
+    let fromDate: Date;
+    let toDate: Date;
+    if (filters.fromDate) {
+      fromDate = moment(filters.fromDate).tz('Asia/Kolkata').format('DD/MM/YYYY');
+      // filters.fromDate =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
+      if (filters.toDate) {
+        toDate = moment(filters.toDate).tz('Asia/Kolkata').format('DD/MM/YYYY');
+        // filters.toDate =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
       }
+    }
+  // .utcOffset("+05:30").format()
+    let fromTime: Date;
+    let toTime: Date;
+    if (filters.fromTime) {
+      fromTime = moment(filters.fromTime).tz('Asia/Kolkata').format('HH:mm');
+      console.log('from time: ', fromTime);
+      // fromTime = tz('Asia/Kolkata');
+      // filters.fromTime = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
+      if (filters.toTime) {
+        toTime = moment(filters.toTime).tz('Asia/Kolkata').format('HH:mm');
+        console.log('to time: ', toTime);
+        // filters.toTime = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
+      }
+    }
+    if (!filters.title) {
+      filters.title = '';
     }
     if (filters.fromCalorie) {
-      if (!filters.toCalorie || filters.toCalorie < filters.fromCalorie) {
-        return ServiceResponse.error(EMessages.BAD_REQUEST);
+      filters.fromCalorie = filters.fromCalorie.valueOf();
+    }
+    if (filters.toCalorie) {
+      filters.toCalorie = filters.toCalorie.valueOf();
+    }
+    let userId: UserEntity;
+    if (filters.userName) {
+      userId = await UserEntity.findByUserName(filters.userName);
+      if (!userId) {
+        return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
       }
-      queryBuilder.andWhere('meal.calorie BETWEEN :fromCalorie AND :toCalorie',
-        {fromCalorie: filters.fromCalorie, toCalorie: filters.toCalorie});
     }
-    if (filters.fromDate) {
-      if (!filters.toDate || filters.toDate < filters.fromDate) {
-        return ServiceResponse.error(EMessages.BAD_REQUEST);
-      }
-      queryBuilder.andWhere('meal.date BETWEEN :fromDate AND :toDate',
-        {fromDate: filters.fromDate, toDate: filters.toDate});
+    const findOptions = {
+      select: ['id', 'date', 'time', 'title', 'calorie'],
+      where: {
+        userId: {...userId},
+        calorie: Between(filters.fromCalorie, filters.toCalorie),
+        date: Between(fromDate, toDate),
+        time: Between(fromTime, toTime),
+        title: Like('%' + filters.title + '%'),
+      },
+    };
+    if (!filters.userName) {
+      delete findOptions.where.userId;
     }
-    if (filters.fromTime) {
-      if (!filters.toTime || filters.toTime < filters.fromTime) {
-        return ServiceResponse.error(EMessages.BAD_REQUEST);
-      }
-      queryBuilder.andWhere('meal.time BETWEEN :fromTime AND :toTime',
-        {fromTime: filters.fromTime, toTime: filters.toTime});
+    if (!filters.fromTime || !filters.toTime) {
+      delete findOptions.where.time;
     }
-    if (filters.title) {
-      filters.title = '%' + filters.title + '%';
-      queryBuilder.andWhere('meal.title LIKE :title', {title: filters.title});
+    if (!filters.fromDate || !filters.toDate) {
+      delete findOptions.where.date;
     }
-    const data = await paginate<MealEntity>(queryBuilder, options);
-    if (data.items.length === 0) {
-      return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
+    if (!filters.fromCalorie || !filters.toCalorie) {
+      delete findOptions.where.calorie;
     }
-    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
+    // const queryBuilder = getRepository(MealEntity).createQueryBuilder('meal');
+    // if (filters.userName) {
+    //   const userEntity: UserEntity = await UserEntity.findByUserName(filters.userName);
+    //   if ( !userEntity ) {
+    //     return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
+    //   } else {
+    //     queryBuilder.andWhere('meal.userId = :user', {user: userEntity});
+    //   }
+    // }
+    // if (filters.fromCalorie) {
+    //   if (!filters.toCalorie) {
+    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
+    //   }
+      // queryBuilder.andWhere('meal.calorie BETWEEN :fromCalorie AND :toCalorie',
+      //   {fromCalorie: filters.fromCalorie, toCalorie: filters.toCalorie});
+    // }
+    // if (filters.fromDate) {
+    //   if (!filters.toDate) {
+    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
+    //   }
+    //   queryBuilder.andWhere('meal.date BETWEEN :fromDate AND :toDate',
+    //     {fromDate: filters.fromDate, toDate: filters.toDate});
+    // }
+    // if (filters.fromTime) {
+    //   if (!filters.toTime || filters.toTime < filters.fromTime) {
+    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
+    //   }
+    //   queryBuilder.andWhere('meal.time BETWEEN :fromTime AND :toTime',
+    //     {fromTime: filters.fromTime, toTime: filters.toTime});
+    // }
+    // if (filters.title) {
+    //   filters.title = '%' + filters.title + '%';
+    //   queryBuilder.andWhere('meal.title LIKE :title', {title: filters.title});
+    // }
+    const meals = await MealEntity.find(findOptions as any);
+    // const data = await paginate<MealEntity>(meals, options);
+    // if (data.items.length === 0) {
+    //   return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
+    // }
+    // const data = meals;
+    return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
   }
 
 // async getMealByDate( dates: IDates): Promise<ServiceResponse> {
@@ -112,17 +190,22 @@ export class MealService {
     meal.calorie = mealDetails.calorie;
     const d = new Date();
     if (mealDetails.date) {
-      meal.date = mealDetails.date;
+      meal.date = moment(mealDetails.date).format('DD/MM/YYYY');
+      // meal.date =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
     } else {
-      meal.date =  d.getDate().toString(10) + '/' + (d.getMonth() + 1).toString() + '/' + d.getFullYear();
+      meal.date = d;
+      // meal.date =  d.getDate().toString(10) + '/' + (d.getMonth() + 1).toString() + '/' + d.getFullYear();
     }
     if (mealDetails.time) {
-      meal.time = mealDetails.time;
+      meal.time = moment(mealDetails.time).format('HH:mm');
+      // meal.time = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
     } else {
-      meal.time =  d.getHours().toString() + ':' + (d.getMinutes() + 1).toString() + ':' + d.getSeconds().toString();
+      meal.time = d.toDateString();
+      // meal.time =  d.getHours().toString() + ':' + (d.getMinutes() + 1).toString() + ':' + d.getSeconds().toString();
     }
     meal.userId = await UserEntity.getUserByUserName(userName);
-    return ServiceResponse.success(await meal.save());
+    await meal.save();
+    return ServiceResponse.success('', EMessages.SUCCESS);
   }
 
   async update(mealDetails: IUpdateMealDTO): Promise<ServiceResponse> {
@@ -140,19 +223,21 @@ export class MealService {
         meal.calorie = mealDetails.calorie;
       }
       if (mealDetails.date) {
-        meal.date = mealDetails.date;
+        meal.date = moment(mealDetails.date).tz('Asia/Kolkata').format('HH:mm');
       }
       if (mealDetails.time) {
-        meal.time = mealDetails.time;
+        meal.time = moment(mealDetails.time).tz('Asia/Kolkata').format('HH:mm');
       }
     }
-    return ServiceResponse.success(await meal.save(), EMessages.RESOURCE_FOUND);
+    await meal.save();
+    return ServiceResponse.success('', EMessages.SUCCESS);
   }
 
   async delete(id: number): Promise<ServiceResponse> {
     const meal: MealEntity = await MealEntity.findOne({id});
     if (meal) {
-      return ServiceResponse.success(await MealEntity.remove(meal));
+      await MealEntity.remove(meal);
+      return ServiceResponse.success('', EMessages.SUCCESS);
     } else {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + `no meals found with this Id : ${id}`);
     }

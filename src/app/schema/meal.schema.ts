@@ -19,6 +19,7 @@ interface CreateMealDTO {
 // }
 
 interface IFilters {
+  id?: number;
   fromDate?: string;
   toDate?: string;
   fromTime?: string;

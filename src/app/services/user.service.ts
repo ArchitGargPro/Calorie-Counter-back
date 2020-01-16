@@ -63,14 +63,18 @@ export class UserService {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + `: user \"${updateUserDTO.userName}\" not found`);
     }
     if ( thisUser.access === EAccess.USER ) { // USER
-      if ( !updateUserDTO.calorie && !updateUserDTO.password) {
+      if ( !updateUserDTO.calorie && !updateUserDTO.password && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         updateUserDTO.userName = thisUser.userName;
         if ( updateUserDTO.password ) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
-        } else if (updateUserDTO.calorie) {
+        }
+        if (updateUserDTO.calorie) {
           user.calorie = updateUserDTO.calorie;
+        }
+        if (updateUserDTO.name) {
+          user.name = updateUserDTO.name;
         }
         const data: IUser = UserService.filter(await UserEntity.save(user));
         return ServiceResponse.success(data);
@@ -78,7 +82,8 @@ export class UserService {
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
       if (!updateUserDTO.calorie
         && (!updateUserDTO.password || updateUserDTO.password === user.password)
-        && !updateUserDTO.access) {
+        && !updateUserDTO.access
+        && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         if (updateUserDTO.password
@@ -93,6 +98,11 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
+        if (updateUserDTO.name && user.access === EAccess.USER) {
+          user.name = updateUserDTO.name;
+        } else {
+          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        }
         if (updateUserDTO.access === EAccess.MANAGER && user.access === EAccess.USER) {
           user.access = updateUserDTO.access;
         } else {
@@ -104,7 +114,8 @@ export class UserService {
     } else { // ADMIN
       if ( !updateUserDTO.calorie
         && (!updateUserDTO.password || updateUserDTO.password === user.password)
-        && !updateUserDTO.access) {
+        && !updateUserDTO.access
+      && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         if (  updateUserDTO.password && updateUserDTO.password !== user.password) {
@@ -112,6 +123,9 @@ export class UserService {
         }
         if ( updateUserDTO.calorie ) {
           user.calorie = updateUserDTO.calorie;
+        }
+        if ( updateUserDTO.name ) {
+          user.name = updateUserDTO.name;
         }
         if ( updateUserDTO.access && user.userName !== thisUser.userName) {
           user.access = updateUserDTO.access;
