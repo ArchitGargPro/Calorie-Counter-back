@@ -34,6 +34,9 @@ export class MealService {
           id: filters.id,
         },
       });
+      if (meal.length === 0) {
+        return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
+      }
       if (meal[0].userId === thisUser || thisUser.access === EAccess.ADMIN) {
         return ServiceResponse.success(meal, EMessages.RESOURCE_FOUND);
       } else {
@@ -43,28 +46,38 @@ export class MealService {
     if (thisUser.access === EAccess.USER) {
       filters.userName = thisUser.userName;
     }
-    let fromDate: Date;
-    let toDate: Date;
+
+    let fromDate = new Date();
+    let toDate = new Date();
     if (filters.fromDate) {
-      fromDate = moment(filters.fromDate).tz('Asia/Kolkata').format('DD/MM/YYYY');
-      // filters.fromDate =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
+      fromDate = moment(filters.fromDate, 'DD/MM/YYYY').format('YYYY/MM/DD');
+      if (!moment(filters.fromDate, 'DD/MM/YYYY').isValid()) {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
+      }
       if (filters.toDate) {
-        toDate = moment(filters.toDate).tz('Asia/Kolkata').format('DD/MM/YYYY');
-        // filters.toDate =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
+        toDate = moment(filters.toDate, 'DD/MM/YYYY').format('YYYY/MM/DD');
+        if (!moment(filters.toDate, 'DD/MM/YYYY').isValid()) {
+          return ServiceResponse.error(EMessages.INVALID_INPUT);
+        }
+      } else {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
       }
     }
-  // .utcOffset("+05:30").format()
-    let fromTime: Date;
-    let toTime: Date;
+
+    let fromTime;
+    let toTime;
     if (filters.fromTime) {
-      fromTime = moment(filters.fromTime).tz('Asia/Kolkata').format('HH:mm');
-      console.log('from time: ', fromTime);
-      // fromTime = tz('Asia/Kolkata');
-      // filters.fromTime = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
+      fromTime = moment(filters.fromTime, 'hh:mm').format('HH:mm');
+      if (!moment(filters.fromTime, 'hh:mm').isValid()) {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
+      }
       if (filters.toTime) {
-        toTime = moment(filters.toTime).tz('Asia/Kolkata').format('HH:mm');
-        console.log('to time: ', toTime);
-        // filters.toTime = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
+        toTime = moment(filters.toTime, 'hh:mm').format('HH:mm');
+        if (!moment(filters.toTime, 'hh:mm').isValid()) {
+          return ServiceResponse.error(EMessages.INVALID_INPUT);
+        }
+      } else {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
       }
     }
     if (!filters.title) {
@@ -89,6 +102,7 @@ export class MealService {
         userId: {...userId},
         calorie: Between(filters.fromCalorie, filters.toCalorie),
         date: Between(fromDate, toDate),
+        // date: MoreThanOrEqual(fromDate) && LessThanOrEqual(toDate),
         time: Between(fromTime, toTime),
         title: Like('%' + filters.title + '%'),
       },
@@ -186,22 +200,28 @@ export class MealService {
 
   async insert(mealDetails: CreateMealDTO, userName: string): Promise<ServiceResponse> {
     const meal = new MealEntity();
+    if (!mealDetails.title || !mealDetails.calorie) {
+      return ServiceResponse.error(EMessages.INVALID_INPUT);
+    }
     meal.title = mealDetails.title;
     meal.calorie = mealDetails.calorie;
-    const d = new Date();
+    let d = moment(new Date(), 'DD/MM/YYYY').format('YYYY/MM/DD');
     if (mealDetails.date) {
-      meal.date = moment(mealDetails.date).format('DD/MM/YYYY');
-      // meal.date =  date.getDate().toString(10) + '/' + (date.getMonth() + 1).toString() + '/' + date.getFullYear();
+      meal.date = moment(mealDetails.date, 'DD/MM/YYYY').format('YYYY/MM/DD');
+      if (!moment(mealDetails.time, 'DD/MM/YYYY').isValid()) {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
+      }
     } else {
       meal.date = d;
-      // meal.date =  d.getDate().toString(10) + '/' + (d.getMonth() + 1).toString() + '/' + d.getFullYear();
     }
+    d = moment(new Date(), 'hh:mm').format('hh:mm');
     if (mealDetails.time) {
-      meal.time = moment(mealDetails.time).format('HH:mm');
-      // meal.time = time.getHours().toString() + ':' + (time.getMinutes() + 1).toString() + ':' + time.getSeconds().toString();
+      meal.time = moment(mealDetails.time, 'hh:mm').format('HH:mm');
+      if (!moment(mealDetails.time, 'hh:mm').isValid()) {
+        return ServiceResponse.error(EMessages.INVALID_INPUT);
+      }
     } else {
-      meal.time = d.toDateString();
-      // meal.time =  d.getHours().toString() + ':' + (d.getMinutes() + 1).toString() + ':' + d.getSeconds().toString();
+      meal.time = d.toString();
     }
     meal.userId = await UserEntity.getUserByUserName(userName);
     await meal.save();
@@ -226,7 +246,10 @@ export class MealService {
         meal.date = moment(mealDetails.date).tz('Asia/Kolkata').format('HH:mm');
       }
       if (mealDetails.time) {
-        meal.time = moment(mealDetails.time).tz('Asia/Kolkata').format('HH:mm');
+        meal.time = moment(mealDetails.time, 'hh:mm').format('HH:mm');
+        if (!moment(mealDetails.time, 'hh:mm').isValid()) {
+          return ServiceResponse.error(EMessages.INVALID_INPUT);
+        }
       }
     }
     await meal.save();

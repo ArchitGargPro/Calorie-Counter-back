@@ -7,6 +7,7 @@ enum EMessages {
   INVALID_AUTHENTICATION_TOKEN = 'Invalid authentication token',
   BAD_REQUEST = 'Bad Request',
   SUCCESS = 'SUCCESS',
+  INVALID_INPUT = 'INVALID INPUT',
 }
 
 export default EMessages;

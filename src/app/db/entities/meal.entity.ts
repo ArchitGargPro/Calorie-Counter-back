@@ -8,7 +8,7 @@ class MealEntity extends BaseEntity {
   id: number;
 
   @Column({ name: 'date' })
-  date: Date;
+  date: string;
 
   @Column({ name: 'time' })
   time: string;
