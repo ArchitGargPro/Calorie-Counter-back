@@ -9,8 +9,7 @@ import AuthService from './auth.service';
 import * as bcryprt from 'bcryptjs';
 import MealEntity from '../db/entities/meal.entity';
 import IUser from '../interfaces/IUser';
-import { IPaginationOptions, paginate } from 'nestjs-typeorm-paginate';
-import { getRepository } from 'typeorm';
+import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class UserService {
@@ -18,9 +17,12 @@ export class UserService {
   constructor(private readonly authService: AuthService) {}
 
   async findAll(options: IPaginationOptions): Promise<ServiceResponse> {
-    const queryBuilder = getRepository(UserEntity).createQueryBuilder('user').select(['user.id', 'user.userName', 'user.name', 'user.access', 'user.calorie']);
-    const data = await paginate<IUser>(queryBuilder, options);
-    if (data.items.length === 0) {
+    const data = await UserEntity.find({
+      select: ['id', 'userName', 'name', 'access', 'calorie'],
+      skip: (options.page - 1) * options.limit,
+      take: options.limit,
+    });
+    if (data.length === 0) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
     return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
@@ -31,7 +33,7 @@ export class UserService {
     if (!user) {
       return ServiceResponse.error(`user \"${userName}\" not found`);
     }
-    const data: IUser = UserService.filter(user);
+    const data: IUser = user;
     return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
   }
 
@@ -41,15 +43,12 @@ export class UserService {
       if (!createUserDTO.password) {
         return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
       } else {
-        // if (!thisUser) {
-        //   createUserDTO.access = EAccess.USER;
-        // } else
         if (thisUser.access === EAccess.MANAGER || thisUser.access === EAccess.ANONYMOUS || !createUserDTO.access) {
           createUserDTO.access = EAccess.USER;
         }
         const newU: UserEntity = await UserEntity.create(createUserDTO);
         newU.calorie = EDefault.EXPECTED_CALORIE;
-        const data: IUser = UserService.filter(await UserEntity.save(newU));
+        const data: IUser = await UserEntity.save(newU);
         return ServiceResponse.success(data);
       }
     } else {
@@ -76,7 +75,7 @@ export class UserService {
         if (updateUserDTO.name) {
           user.name = updateUserDTO.name;
         }
-        const data: IUser = UserService.filter(await UserEntity.save(user));
+        const data: IUser = await UserEntity.save(user);
         return ServiceResponse.success(data);
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
@@ -108,7 +107,7 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        const data: IUser = UserService.filter(await UserEntity.save(user));
+        const data: IUser = await UserEntity.save(user);
         return ServiceResponse.success(data);
       }
     } else { // ADMIN
@@ -130,7 +129,7 @@ export class UserService {
         if ( updateUserDTO.access && user.userName !== thisUser.userName) {
           user.access = updateUserDTO.access;
         }
-        const data: IUser = UserService.filter(await UserEntity.save(user));
+        const data: IUser = await UserEntity.save(user);
         return ServiceResponse.success(data);
       }
     }
@@ -146,7 +145,7 @@ export class UserService {
     if ( (thisUser.access === EAccess.MANAGER && user.access === EAccess.USER)
       || (thisUser.access === EAccess.ADMIN && userName !== thisUser.userName)) {
       await MealEntity.remove(meals);
-      const data: IUser = UserService.filter(await UserEntity.removeUser(userName));
+      const data: IUser = await UserEntity.removeUser(userName);
       return ServiceResponse.success(data);
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
@@ -159,7 +158,7 @@ export class UserService {
     if ( !user ) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
-    const data: IUser = UserService.filter(await UserEntity.findByUserName(userName));
+    const data: IUser = await UserEntity.findByUserName(userName);
     if (await bcryprt.compare(password, user.password)) {
       return ServiceResponse.success(
         {
@@ -169,18 +168,5 @@ export class UserService {
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
-  }
-
-  // to remove password from an array of UserEntity
-  private filterArray(userEntity: UserEntity[]): IUser[] {
-    return userEntity.map((user: UserEntity): IUser => {
-      delete user.password;
-      return user;
-    });
-  }
-
-  private static filter(user: UserEntity): IUser {
-    delete user.password;
-    return user;
   }
 }

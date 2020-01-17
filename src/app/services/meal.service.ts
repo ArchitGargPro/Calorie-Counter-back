@@ -1,30 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import MealEntity from '../db/entities/meal.entity';
-import { CreateMealDTO, IFilters, IUpdateMealDTO } from '../schema/meal.schema';
+import { CreateMealDTO, IFilters, IPerDay, IUpdateMealDTO } from '../schema/meal.schema';
 import UserEntity from '../db/entities/user.entity';
 import EMessages from '../enums/EMessages';
 import ServiceResponse from '../utils/ServiceResponse';
-import { IPaginationOptions, paginate } from 'nestjs-typeorm-paginate';
-import { Between, Like } from 'typeorm';
+import { IPaginationOptions } from 'nestjs-typeorm-paginate';
+import { Between, getRepository, Like } from 'typeorm';
 import EAccess from '../enums/access.enum';
 import moment = require('moment-timezone');
+import IMeal from '../interfaces/IMeal';
 
 @Injectable()
 export class MealService {
-
-  // async getMeal(userName: string, options: IPaginationOptions): Promise<ServiceResponse> {
-  //   const userEntity: UserEntity = await UserEntity.findByUserName(userName);
-  //   if ( !userEntity ) {
-  //     return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
-  //   } else {
-  //     const queryBuilder = getRepository(MealEntity).createQueryBuilder('meal').where('meal.userId = :user', {user: userEntity});
-  //     const data = await paginate<MealEntity>(queryBuilder, options);
-  //     if (data.items.length === 0) {
-  //       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
-  //     }
-  //     return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
-  //   }
-  // }
 
   async getMeals( filters: IFilters, thisUser: UserEntity, options: IPaginationOptions): Promise<ServiceResponse> {
     if (filters.id) {
@@ -106,6 +93,8 @@ export class MealService {
         time: Between(fromTime, toTime),
         title: Like('%' + filters.title + '%'),
       },
+      skip: (options.page - 1) * options.limit,
+      take: options.limit,
     };
     if (!filters.userName) {
       delete findOptions.where.userId;
@@ -154,12 +143,30 @@ export class MealService {
     //   queryBuilder.andWhere('meal.title LIKE :title', {title: filters.title});
     // }
     const meals = await MealEntity.find(findOptions as any);
-    // const data = await paginate<MealEntity>(meals, options);
-    // if (data.items.length === 0) {
-    //   return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
-    // }
-    // const data = meals;
-    return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
+    const dates = meals.map(meal => {
+      return meal.date;
+    });
+    const caloriesPerDay: IPerDay[] = await getRepository(MealEntity)
+      .createQueryBuilder('meal')
+      .select('meal.date, SUM(meal.calorie) AS sum')
+      .groupBy('meal.date')
+      .where('meal.date IN (:...dates)', {dates})
+      .getRawMany();
+    const data: IMeal[] = meals.map(meal => {
+      for (const perDay of caloriesPerDay) {
+        if (perDay.date === meal.date) {
+          return {
+            id : meal.id,
+            date : meal.date,
+            time : meal.time,
+            title : meal.title,
+            calorie : meal.calorie,
+            sum : perDay.sum,
+          };
+        }
+      }
+    });
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
   }
 
 // async getMealByDate( dates: IDates): Promise<ServiceResponse> {
@@ -208,7 +215,7 @@ export class MealService {
     let d = moment(new Date(), 'DD/MM/YYYY').format('YYYY/MM/DD');
     if (mealDetails.date) {
       meal.date = moment(mealDetails.date, 'DD/MM/YYYY').format('YYYY/MM/DD');
-      if (!moment(mealDetails.time, 'DD/MM/YYYY').isValid()) {
+      if (!moment(mealDetails.date, 'DD/MM/YYYY').isValid()) {
         return ServiceResponse.error(EMessages.INVALID_INPUT);
       }
     } else {

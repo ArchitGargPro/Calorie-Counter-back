@@ -45,7 +45,10 @@ class UserEntity extends BaseEntity {
     }
 
     public static async findByUserName(userName: string): Promise<UserEntity> {
-        return await UserEntity.findOne({ where: {userName} });
+        return await UserEntity.findOne({
+            select: ['id', 'userName', 'name', 'access', 'calorie'],
+            where: {userName},
+        });
     }
 
     public static async getUserByUserName(userName: string): Promise<UserEntity> {

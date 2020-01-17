@@ -6,17 +6,10 @@ interface CreateMealDTO {
   userName?: string;
 }
 
-// interface IDates {
-//   fromDate: string;
-//   toDate: string;
-//   userName?: string;
-// }
-//
-// interface ITime {
-//   fromTime: string;
-//   toTime: string;
-//   userName?: string;
-// }
+interface IPerDay {
+  date: string;
+  sum: number;
+}
 
 interface IFilters {
   id?: number;
@@ -43,6 +36,5 @@ export {
   CreateMealDTO,
   IUpdateMealDTO,
   IFilters,
-  // IDates,
-  // ITime,
+  IPerDay,
 };
