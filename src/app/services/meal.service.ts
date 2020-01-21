@@ -30,7 +30,7 @@ export class MealService {
         },
       });
       if (mealUser[0].userId.userName === thisUser.userName || thisUser.access === EAccess.ADMIN) {
-        return this.addOverflow(meal);
+        return this.addOverflow(meal, 1);
       } else {
         return ServiceResponse.error(EMessages.PERMISSION_DENIED);
       }
@@ -114,10 +114,13 @@ export class MealService {
       delete findOptions.where.calorie;
     }
     const meals = await MealEntity.find(findOptions as any);
-    return this.addOverflow(meals);
+    delete findOptions.skip;
+    delete findOptions.take;
+    const size = (await MealEntity.findAndCount(findOptions as any))[1];
+    return this.addOverflow(meals, size);
   }
 
-  async addOverflow(meals) {
+  async addOverflow(meals, length) {
     const dates = meals.map(meal => {
       return meal.date;
     });
@@ -141,7 +144,7 @@ export class MealService {
         }
       }
     });
-    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND, length);
   }
 
   async insert(mealDetails: CreateMealDTO, userName: string, currentUserAccess: number): Promise<ServiceResponse> {
@@ -171,7 +174,7 @@ export class MealService {
     }
     meal.userId = await UserEntity.getUserByUserName(userName);
     await meal.save();
-    return ServiceResponse.success('', EMessages.SUCCESS);
+    return ServiceResponse.success('', EMessages.SUCCESS, 0);
   }
 
   async update(mealDetails: IUpdateMealDTO): Promise<ServiceResponse> {
@@ -205,14 +208,14 @@ export class MealService {
       }
     }
     await meal.save();
-    return ServiceResponse.success('', EMessages.SUCCESS);
+    return ServiceResponse.success('', EMessages.SUCCESS, 0);
   }
 
   async delete(id: number): Promise<ServiceResponse> {
     const meal: MealEntity = await MealEntity.findOne({id});
     if (meal) {
       await MealEntity.remove(meal);
-      return ServiceResponse.success('', EMessages.SUCCESS);
+      return ServiceResponse.success('', EMessages.SUCCESS, 0);
     } else {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + `no meals found with this Id : ${id}`);
     }

@@ -17,15 +17,19 @@ export class UserService {
   constructor(private readonly authService: AuthService) {}
 
   async findAll(options: IPaginationOptions): Promise<ServiceResponse> {
-    const data = await UserEntity.find({
+    const findOptions = {
       select: ['id', 'userName', 'name', 'access', 'calorie'],
       skip: (options.page - 1) * options.limit,
       take: options.limit,
-    });
+    };
+    const data = await UserEntity.find(findOptions as any);
     if (data.length === 0) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
-    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
+    delete findOptions.skip;
+    delete findOptions.take;
+    const size = (await UserEntity.findAndCount(findOptions as any))[1];
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND, size);
   }
 
   async findByUserName(userName: string): Promise<ServiceResponse> {
@@ -34,7 +38,7 @@ export class UserService {
       return ServiceResponse.error(`user \"${userName}\" not found`);
     }
     const data: IUser = user;
-    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
+    return ServiceResponse.success(data, EMessages.RESOURCE_FOUND, 1);
   }
 
   async createUser(createUserDTO: CreateUserDTO, thisUser): Promise<ServiceResponse> {
@@ -52,8 +56,8 @@ export class UserService {
         } else {
           newU.calorie = EDefault.EXPECTED_CALORIE;
         }
-        const data: IUser = await UserEntity.save(newU);
-        return ServiceResponse.success(data);
+        await UserEntity.save(newU);
+        return ServiceResponse.success('', EMessages.SUCCESS, 0);
       }
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS + ` : userName \"${createUserDTO.userName}\" already in use`);
@@ -79,8 +83,8 @@ export class UserService {
         if (updateUserDTO.name) {
           user.name = updateUserDTO.name;
         }
-        const data: IUser = await UserEntity.save(user);
-        return ServiceResponse.success(data);
+        await UserEntity.save(user);
+        return ServiceResponse.success('', EMessages.SUCCESS, 0);
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
       if (!updateUserDTO.calorie
@@ -111,8 +115,8 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        const data: IUser = await UserEntity.save(user);
-        return ServiceResponse.success(data);
+        await UserEntity.save(user);
+        return ServiceResponse.success('', EMessages.SUCCESS, 0);
       }
     } else { // ADMIN
       if ( !updateUserDTO.calorie
@@ -133,8 +137,8 @@ export class UserService {
         if ( updateUserDTO.access && user.userName !== thisUser.userName) {
           user.access = updateUserDTO.access;
         }
-        const data: IUser = await UserEntity.save(user);
-        return ServiceResponse.success(data);
+        await UserEntity.save(user);
+        return ServiceResponse.success('', EMessages.SUCCESS, 0);
       }
     }
   }
@@ -149,8 +153,8 @@ export class UserService {
     if ( (thisUser.access === EAccess.MANAGER && user.access === EAccess.USER)
       || (thisUser.access === EAccess.ADMIN && userName !== thisUser.userName)) {
       await MealEntity.remove(meals);
-      const data: IUser = await UserEntity.removeUser(userName);
-      return ServiceResponse.success(data);
+      await UserEntity.removeUser(userName);
+      return ServiceResponse.success('', EMessages.SUCCESS, 0);
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
     }
@@ -170,7 +174,7 @@ export class UserService {
         {
           jwttoken: await this.authService.generateJWTToken(user),
           user: data,
-        }, 'Logged in Successfully');
+        }, EMessages.SUCCESS, 0);
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
