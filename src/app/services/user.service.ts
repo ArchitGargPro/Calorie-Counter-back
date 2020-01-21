@@ -47,7 +47,11 @@ export class UserService {
           createUserDTO.access = EAccess.USER;
         }
         const newU: UserEntity = await UserEntity.create(createUserDTO);
-        newU.calorie = EDefault.EXPECTED_CALORIE;
+        if (createUserDTO.calorie) {
+          newU.calorie = createUserDTO.calorie;
+        } else {
+          newU.calorie = EDefault.EXPECTED_CALORIE;
+        }
         const data: IUser = await UserEntity.save(newU);
         return ServiceResponse.success(data);
       }
@@ -154,8 +158,10 @@ export class UserService {
 
   async login(loginCredentials: LoginDTO): Promise<ServiceResponse> {
     const {userName, password} = loginCredentials;
-    const user: UserEntity = await UserEntity.findByUserName(userName);
-    if ( !user ) {
+    const user: UserEntity = await UserEntity.findOne({
+      where: {userName},
+    });
+    if ( !user || !loginCredentials.password) {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }
     const data: IUser = await UserEntity.findByUserName(userName);

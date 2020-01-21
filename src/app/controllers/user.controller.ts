@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { CreateUserDTO, UpdateUserDTO } from '../schema/user.schema';
-import UserEntity from '../db/entities/user.entity';
 import EAccess from '../enums/access.enum';
 import ServiceResponse from '../utils/ServiceResponse';
 import AuthenticationGuard from '../guards/authentication.guard';

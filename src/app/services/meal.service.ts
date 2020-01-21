@@ -24,8 +24,13 @@ export class MealService {
       if (meal.length === 0) {
         return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
       }
-      if (meal[0].userId === thisUser || thisUser.access === EAccess.ADMIN) {
-        return ServiceResponse.success(meal, EMessages.RESOURCE_FOUND);
+      const mealUser: MealEntity[] = await MealEntity.find({
+        where: {
+          id: filters.id,
+        },
+      });
+      if (mealUser[0].userId.userName === thisUser.userName || thisUser.access === EAccess.ADMIN) {
+        return this.addOverflow(meal);
       } else {
         return ServiceResponse.error(EMessages.PERMISSION_DENIED);
       }
@@ -33,7 +38,6 @@ export class MealService {
     if (thisUser.access === EAccess.USER) {
       filters.userName = thisUser.userName;
     }
-
     let fromDate = new Date();
     let toDate = new Date();
     if (filters.fromDate) {
@@ -89,10 +93,11 @@ export class MealService {
         userId: {...userId},
         calorie: Between(filters.fromCalorie, filters.toCalorie),
         date: Between(fromDate, toDate),
-        // date: MoreThanOrEqual(fromDate) && LessThanOrEqual(toDate),
         time: Between(fromTime, toTime),
         title: Like('%' + filters.title + '%'),
       },
+      orderBy: 'time',
+      groupBy: 'date',
       skip: (options.page - 1) * options.limit,
       take: options.limit,
     };
@@ -108,41 +113,11 @@ export class MealService {
     if (!filters.fromCalorie || !filters.toCalorie) {
       delete findOptions.where.calorie;
     }
-    // const queryBuilder = getRepository(MealEntity).createQueryBuilder('meal');
-    // if (filters.userName) {
-    //   const userEntity: UserEntity = await UserEntity.findByUserName(filters.userName);
-    //   if ( !userEntity ) {
-    //     return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
-    //   } else {
-    //     queryBuilder.andWhere('meal.userId = :user', {user: userEntity});
-    //   }
-    // }
-    // if (filters.fromCalorie) {
-    //   if (!filters.toCalorie) {
-    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
-    //   }
-      // queryBuilder.andWhere('meal.calorie BETWEEN :fromCalorie AND :toCalorie',
-      //   {fromCalorie: filters.fromCalorie, toCalorie: filters.toCalorie});
-    // }
-    // if (filters.fromDate) {
-    //   if (!filters.toDate) {
-    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
-    //   }
-    //   queryBuilder.andWhere('meal.date BETWEEN :fromDate AND :toDate',
-    //     {fromDate: filters.fromDate, toDate: filters.toDate});
-    // }
-    // if (filters.fromTime) {
-    //   if (!filters.toTime || filters.toTime < filters.fromTime) {
-    //     return ServiceResponse.error(EMessages.BAD_REQUEST);
-    //   }
-    //   queryBuilder.andWhere('meal.time BETWEEN :fromTime AND :toTime',
-    //     {fromTime: filters.fromTime, toTime: filters.toTime});
-    // }
-    // if (filters.title) {
-    //   filters.title = '%' + filters.title + '%';
-    //   queryBuilder.andWhere('meal.title LIKE :title', {title: filters.title});
-    // }
     const meals = await MealEntity.find(findOptions as any);
+    return this.addOverflow(meals);
+  }
+
+  async addOverflow(meals) {
     const dates = meals.map(meal => {
       return meal.date;
     });
@@ -152,7 +127,7 @@ export class MealService {
       .groupBy('meal.date')
       .where('meal.date IN (:...dates)', {dates})
       .getRawMany();
-    const data: IMeal[] = meals.map(meal => {
+    const data: IMeal[] = meals.map((meal) => {
       for (const perDay of caloriesPerDay) {
         if (perDay.date === meal.date) {
           return {
@@ -169,45 +144,9 @@ export class MealService {
     return ServiceResponse.success(data, EMessages.RESOURCE_FOUND);
   }
 
-// async getMealByDate( dates: IDates): Promise<ServiceResponse> {
-//   const startDate = moment(dates.fromDate , 'DD/MM/YYYY');
-//   const endDate = moment(dates.toDate , 'DD/MM/YYYY');
-//   const allMeals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(dates.userName));
-//   const meals: MealEntity[] = [];
-//   for (const meal of allMeals) {
-//     const mealDate = moment( meal.date, 'DD/MM/YYYY');
-//     if ( mealDate.isBetween(startDate, endDate)) {
-//       meals.push(meal);
-//     }
-//   }
-//   if ( meals.length === 0 ) {
-//     return ServiceResponse.error('no meals found');
-//   } else {
-//     return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
-//   }
-// }
-
-// async getMealByTime( time: ITime): Promise<ServiceResponse> {
-//   const startTime = moment(time.fromTime , 'HH:mm:ss');
-//   const endTime = moment(time.toTime , 'HH:mm:ss');
-//   const allMeals: MealEntity[] = await MealEntity.findByUser(await UserEntity.getUserByUserName(time.userName));
-//   const meals: MealEntity[] = [];
-//   for ( const meal of allMeals) {
-//     const mealTime = moment( meal.time, 'HH:mm:ss');
-//     if ( mealTime.isBetween(startTime, endTime)) {
-//       meals.push(meal);
-//     }
-//   }
-//   if ( meals.length === 0 ) {
-//     return ServiceResponse.error('no meals found');
-//   } else {
-//     return ServiceResponse.success(meals, EMessages.RESOURCE_FOUND);
-//   }
-// }
-
-  async insert(mealDetails: CreateMealDTO, userName: string): Promise<ServiceResponse> {
+  async insert(mealDetails: CreateMealDTO, userName: string, currentUserAccess: number): Promise<ServiceResponse> {
     const meal = new MealEntity();
-    if (!mealDetails.title || !mealDetails.calorie) {
+    if (!mealDetails.title || !mealDetails.calorie || (currentUserAccess === EAccess.ADMIN && !mealDetails.userName)) {
       return ServiceResponse.error(EMessages.INVALID_INPUT);
     }
     meal.title = mealDetails.title;
@@ -240,8 +179,11 @@ export class MealService {
     if ( !meal ) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND);
     }
-    if (!mealDetails.title && !mealDetails.calorie && !mealDetails.date && !mealDetails.time) {
-      return ServiceResponse.error('enter value to be updated (title / calories)');
+    if (!mealDetails.title
+      && !mealDetails.calorie
+      && (!mealDetails.date || mealDetails.date === 'Invalid date')
+      && (!mealDetails.time || mealDetails.time === 'Invalid date')) {
+      return ServiceResponse.error('enter value to be updated (title/calories/date/time)');
     } else {
       if (mealDetails.title) {
         meal.title = mealDetails.title;
@@ -249,10 +191,13 @@ export class MealService {
       if (mealDetails.calorie) {
         meal.calorie = mealDetails.calorie;
       }
-      if (mealDetails.date) {
-        meal.date = moment(mealDetails.date).tz('Asia/Kolkata').format('HH:mm');
+      if (mealDetails.date && !(mealDetails.date === 'Invalid date')) {
+        meal.date = moment(mealDetails.date).format('YYYY/MM/DD');
+        if (!moment(mealDetails.date, 'YYYY/MM/DD').isValid()) {
+          return ServiceResponse.error(EMessages.INVALID_INPUT);
+        }
       }
-      if (mealDetails.time) {
+      if (mealDetails.time && !(mealDetails.time === 'Invalid date')) {
         meal.time = moment(mealDetails.time, 'hh:mm').format('HH:mm');
         if (!moment(mealDetails.time, 'hh:mm').isValid()) {
           return ServiceResponse.error(EMessages.INVALID_INPUT);

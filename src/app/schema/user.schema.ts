@@ -3,6 +3,7 @@ interface CreateUserDTO {
   userName: string;
   password: string;
   access?: number;
+  calorie?: number;
 }
 
 interface UpdateUserDTO {
