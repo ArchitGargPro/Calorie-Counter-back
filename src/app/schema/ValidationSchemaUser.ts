@@ -30,7 +30,8 @@ const updateUserValidationSchema = Joi.object({
     .max(30),
 
   password: Joi.string()
-    .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')),
+    .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$'))
+    .allow(''),
 
   access: Joi.number()
     .max(3)
@@ -38,7 +39,8 @@ const updateUserValidationSchema = Joi.object({
 
   userName: Joi.string()
     .email({ minDomainSegments: 2})
-    .required(),
+    .required()
+    .allow(''),
 
   calorie: Joi.number()
     .min(0),
