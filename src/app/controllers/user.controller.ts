@@ -1,13 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { UserService } from '../services/user.service';
-import { CreateUserDTO, UpdateUserDTO } from '../schema/user.schema';
+import { CreateUserDTO } from '../schema/CreateUserDTO';
 import EAccess from '../enums/access.enum';
 import ServiceResponse from '../utils/ServiceResponse';
 import AuthenticationGuard from '../guards/authentication.guard';
 import RolesGuard from '../guards/roles.guard';
 import { AuthDetails } from '../utils/AuthDetails.decorator';
-import LoginDTO from '../schema/access.schema';
+import LoginDTO from '../schema/LoginDTO';
 import AuthDetail from '../interfaces/AuthDetails';
+import { UpdateUserDTO } from '../schema/UpdateUserDTO';
+import { JoiValidationPipe } from '../pipes/JoiValidationPipe';
+import { loginValidationSchema, newUserValidationSchema, updateUserValidationSchema } from '../schema/ValidationSchemaUser';
 
 @Controller('user')
 export default class UserController {
@@ -15,6 +18,7 @@ export default class UserController {
   }
 
   @Post('login')
+  @UsePipes(new JoiValidationPipe(loginValidationSchema))
   async login(@Body() loginCredentials: LoginDTO): Promise<ServiceResponse> {
     return await this.userService.login(loginCredentials);
   }
@@ -36,14 +40,16 @@ export default class UserController {
   }
 
   @Post('/new')
+  @UsePipes(new JoiValidationPipe(newUserValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
   async createUser(@Body() createUserDTO: CreateUserDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     return await this.userService.createUser(createUserDTO, authDetail.currentUser);
   }
 
   @Post('/signUp')
+  @UsePipes(new JoiValidationPipe(newUserValidationSchema))
   async createAccount(@Body() createUserDTO: CreateUserDTO): Promise<ServiceResponse> {
-    return await this.userService.createUser(createUserDTO, {access: EAccess.ANONYMOUS});
+    return await this.userService.createUser(createUserDTO, {access: 0});
   }
 
   @Delete('/remove/:userName')
@@ -53,6 +59,7 @@ export default class UserController {
   }
 
   @Put('/update')
+  @UsePipes(new JoiValidationPipe(updateUserValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.MANAGER, EAccess.ADMIN]))
   async updateUser(@Body() updateUserDTO: UpdateUserDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     return await this.userService.updateUser(updateUserDTO, authDetail.currentUser);

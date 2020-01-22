@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDTO, EDefault, UpdateUserDTO } from '../schema/user.schema';
+import { CreateUserDTO, EDefault } from '../schema/CreateUserDTO';
 import UserEntity from '../db/entities/user.entity';
 import ServiceResponse from '../utils/ServiceResponse';
 import EMessages from '../enums/EMessages';
 import EAccess from '../enums/access.enum';
-import LoginDTO from '../schema/access.schema';
+import LoginDTO from '../schema/LoginDTO';
 import AuthService from './auth.service';
 import * as bcryprt from 'bcryptjs';
 import MealEntity from '../db/entities/meal.entity';
 import IUser from '../interfaces/IUser';
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
+import { UpdateUserDTO } from '../schema/UpdateUserDTO';
 
 @Injectable()
 export class UserService {
@@ -47,17 +48,17 @@ export class UserService {
       if (!createUserDTO.password) {
         return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
       } else {
-        if (thisUser.access === EAccess.MANAGER || thisUser.access === EAccess.ANONYMOUS || !createUserDTO.access) {
+        if (thisUser.access === EAccess.MANAGER || thisUser.access === 0 || !createUserDTO.access) {
           createUserDTO.access = EAccess.USER;
         }
         const newU: UserEntity = await UserEntity.create(createUserDTO);
-        if (createUserDTO.calorie) {
+        if (createUserDTO.calorie && createUserDTO.calorie > 0) {
           newU.calorie = createUserDTO.calorie;
         } else {
           newU.calorie = EDefault.EXPECTED_CALORIE;
         }
-        await UserEntity.save(newU);
-        return ServiceResponse.success('', EMessages.SUCCESS, 0);
+        const data: IUser = await UserEntity.save(newU);
+        return ServiceResponse.success(data, EMessages.SUCCESS, 1);
       }
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS + ` : userName \"${createUserDTO.userName}\" already in use`);
@@ -77,14 +78,14 @@ export class UserService {
         if ( updateUserDTO.password ) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         }
-        if (updateUserDTO.calorie) {
+        if (updateUserDTO.calorie && updateUserDTO.calorie > 0) {
           user.calorie = updateUserDTO.calorie;
         }
         if (updateUserDTO.name) {
           user.name = updateUserDTO.name;
         }
-        await UserEntity.save(user);
-        return ServiceResponse.success('', EMessages.SUCCESS, 0);
+        const data: IUser = await UserEntity.save(user);
+        return ServiceResponse.success(data, EMessages.SUCCESS, 1);
       }
     } else if ( thisUser.access === EAccess.MANAGER ) { // MANAGER
       if (!updateUserDTO.calorie
@@ -93,14 +94,14 @@ export class UserService {
         && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
-        if (updateUserDTO.password
-          && updateUserDTO.password !== user.password
-          && (user.access === EAccess.USER && user.userName !== thisUser.userName)) {
-          user.password = bcryprt.hashSync(updateUserDTO.password, 10);
-        } else {
-          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        if (updateUserDTO.password && updateUserDTO.password !== user.password) {
+          if (user.access === EAccess.USER || user.userName === thisUser.userName) {
+            user.password = bcryprt.hashSync(updateUserDTO.password, 10);
+          } else {
+            return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+          }
         }
-        if (updateUserDTO.calorie && user.access === EAccess.USER) {
+        if (updateUserDTO.calorie && user.access === EAccess.USER && updateUserDTO.calorie > 0) {
           user.calorie = updateUserDTO.calorie;
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
@@ -110,35 +111,35 @@ export class UserService {
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        if (updateUserDTO.access === EAccess.MANAGER && user.access === EAccess.USER) {
+        if ((updateUserDTO.access === EAccess.MANAGER && user.access === EAccess.USER) || (updateUserDTO.access.valueOf() === user.access)) {
           user.access = updateUserDTO.access;
         } else {
           return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
         }
-        await UserEntity.save(user);
-        return ServiceResponse.success('', EMessages.SUCCESS, 0);
+        const data: IUser = await UserEntity.save(user);
+        return ServiceResponse.success(data, EMessages.SUCCESS, 1);
       }
     } else { // ADMIN
       if ( !updateUserDTO.calorie
         && (!updateUserDTO.password || updateUserDTO.password === user.password)
         && !updateUserDTO.access
-      && !updateUserDTO.name) {
+        && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
         if (  updateUserDTO.password && updateUserDTO.password !== user.password) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         }
-        if ( updateUserDTO.calorie ) {
+        if ( updateUserDTO.calorie && updateUserDTO.calorie > 0  ) {
           user.calorie = updateUserDTO.calorie;
         }
         if ( updateUserDTO.name ) {
           user.name = updateUserDTO.name;
         }
-        if ( updateUserDTO.access && user.userName !== thisUser.userName) {
+        if ( updateUserDTO.access && user.userName !== thisUser.userName && updateUserDTO.access in EAccess) {
           user.access = updateUserDTO.access;
         }
-        await UserEntity.save(user);
-        return ServiceResponse.success('', EMessages.SUCCESS, 0);
+        const data: IUser = await UserEntity.save(user);
+        return ServiceResponse.success(data, EMessages.SUCCESS, 1);
       }
     }
   }
@@ -149,12 +150,12 @@ export class UserService {
     if (!user) {
       return ServiceResponse.error(EMessages.RESOURCE_NOT_FOUND + ` : user not found : ${userName}`);
     }
-    // manager can delete user || admin can delete anyone except himself
+// manager can delete user || admin can delete anyone except himself
     if ( (thisUser.access === EAccess.MANAGER && user.access === EAccess.USER)
       || (thisUser.access === EAccess.ADMIN && userName !== thisUser.userName)) {
       await MealEntity.remove(meals);
-      await UserEntity.removeUser(userName);
-      return ServiceResponse.success('', EMessages.SUCCESS, 0);
+      const data: IUser = await UserEntity.removeUser(userName);
+      return ServiceResponse.success(data, EMessages.SUCCESS, 1);
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
     }
@@ -174,7 +175,7 @@ export class UserService {
         {
           jwttoken: await this.authService.generateJWTToken(user),
           user: data,
-        }, EMessages.SUCCESS, 0);
+        }, EMessages.SUCCESS, 1);
     } else {
       return ServiceResponse.error(EMessages.INVALID_CREDENTIALS);
     }

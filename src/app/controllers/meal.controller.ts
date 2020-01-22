@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { CreateMealDTO, IFilters, IUpdateMealDTO } from '../schema/meal.schema';
 import { MealService } from '../services/meal.service';
 import EAccess from '../enums/access.enum';
@@ -7,6 +7,8 @@ import { AuthDetails } from '../utils/AuthDetails.decorator';
 import AuthenticationGuard from '../guards/authentication.guard';
 import RolesGuard from '../guards/roles.guard';
 import AuthDetail from '../interfaces/AuthDetails';
+import { createMealValidationSchema, filtersValidationSchema, updateMealValidationSchema } from '../schema/ValidationSchemaMeal';
+import { JoiValidationPipe } from '../pipes/JoiValidationPipe';
 
 @Controller('meal')
 export default class MealController {
@@ -15,6 +17,7 @@ export default class MealController {
   }
 
   @Post('/new')
+  @UsePipes(new JoiValidationPipe(createMealValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async postMeal( @Body() meal: CreateMealDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     if (authDetail.currentUser.access === EAccess.ADMIN) {
@@ -24,6 +27,7 @@ export default class MealController {
   }
 
   @Get()
+  @UsePipes(new JoiValidationPipe(filtersValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async getFilteredMeals(@Query() filters: IFilters,
                          @AuthDetails() authDetail: AuthDetail,
@@ -34,6 +38,7 @@ export default class MealController {
   }
 
   @Put('/update')
+  @UsePipes(new JoiValidationPipe(updateMealValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async updateMeal(@Body() meal: IUpdateMealDTO): Promise<ServiceResponse> {
       return await this.mealService.update(meal);

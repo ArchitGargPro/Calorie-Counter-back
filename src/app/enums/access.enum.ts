@@ -1,6 +1,5 @@
 enum EAccess {
-  ANONYMOUS,
-  USER,
+  USER = 1,
   MANAGER,
   ADMIN,
 }

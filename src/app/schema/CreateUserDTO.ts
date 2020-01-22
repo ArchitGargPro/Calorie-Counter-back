@@ -1,16 +1,17 @@
-interface CreateUserDTO {
-  name: string;
-  userName: string;
-  password: string;
-  access?: number;
-  calorie?: number;
-}
+import { IsEmail, IsNotEmpty } from 'class-validator';
 
-interface UpdateUserDTO {
+class CreateUserDTO {
+
+  @IsNotEmpty()
+  name: string;
+
+  @IsEmail()
   userName: string;
-  password?: string;
+
+  @IsNotEmpty()
+  password: string;
+
   access?: number;
-  name?: string;
   calorie?: number;
 }
 
@@ -20,6 +21,5 @@ enum EDefault {
 
 export {
   CreateUserDTO,
-  UpdateUserDTO,
   EDefault,
 };
