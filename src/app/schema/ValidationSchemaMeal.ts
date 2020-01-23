@@ -2,9 +2,6 @@ import * as Joi from '@hapi/joi';
 
 const createMealValidationSchema = Joi.object({
   title: Joi.string()
-    .alphanum()
-    .min(3)
-    .max(20)
     .required(),
 
   calorie: Joi.number()
@@ -26,9 +23,6 @@ const filtersValidationSchema = Joi.object({
     .min(0),
 
   title: Joi.string()
-    .alphanum()
-    .min(3)
-    .max(20)
     .allow(''),
 
   fromCalorie: Joi.number()
@@ -63,9 +57,6 @@ const updateMealValidationSchema = Joi.object({
     .required(),
 
   title: Joi.string()
-    .alphanum()
-    .min(3)
-    .max(20)
     .allow(''),
 
   calorie: Joi.number()
@@ -74,10 +65,6 @@ const updateMealValidationSchema = Joi.object({
   date: Joi.string()
     .allow(''),
   time: Joi.string()
-    .allow(''),
-
-  userName: Joi.string()
-    .email({ minDomainSegments: 2})
     .allow(''),
 }).unknown();
 

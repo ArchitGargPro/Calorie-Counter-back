@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserService } from '../services/user.service';
 import UserController from '../controllers/user.controller';
@@ -11,7 +11,7 @@ import RolesGuard from '../guards/roles.guard';
 @Module({
   imports: [TypeOrmModule.forFeature([UserEntity])],
   controllers: [UserController],
-  providers: [UserService, AuthService, AuthenticationGuard, {useValue: EAccess, provide: RolesGuard}],
+  providers: [UserService, AuthService, AuthenticationGuard, ValidationPipe, {useValue: EAccess, provide: RolesGuard}],
 })
 
 class UserModule {

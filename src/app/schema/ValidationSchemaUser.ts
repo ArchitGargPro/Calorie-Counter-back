@@ -2,7 +2,6 @@ import * as Joi from '@hapi/joi';
 
 const newUserValidationSchema = Joi.object({
   name: Joi.string()
-    .alphanum()
     .min(3)
     .max(30)
     .required(),
@@ -21,11 +20,10 @@ const newUserValidationSchema = Joi.object({
 
   calorie: Joi.number()
     .min(0),
-});
+}).unknown();
 
 const updateUserValidationSchema = Joi.object({
   name: Joi.string()
-    .alphanum()
     .min(3)
     .max(30),
 
@@ -44,7 +42,7 @@ const updateUserValidationSchema = Joi.object({
 
   calorie: Joi.number()
     .min(0),
-});
+}).unknown();
 
 const loginValidationSchema = Joi.object({
   password: Joi.string()
@@ -54,7 +52,7 @@ const loginValidationSchema = Joi.object({
   userName: Joi.string()
     .email({ minDomainSegments: 2})
     .required(),
-});
+}).unknown();
 
 export {
   newUserValidationSchema,

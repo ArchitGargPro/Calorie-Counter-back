@@ -20,6 +20,9 @@ export class UserService {
   async findAll(options: IPaginationOptions): Promise<ServiceResponse> {
     const findOptions = {
       select: ['id', 'userName', 'name', 'access', 'calorie'],
+      order: {
+        userName: 'ASC',
+      },
       skip: (options.page - 1) * options.limit,
       take: options.limit,
     };
@@ -101,20 +104,28 @@ export class UserService {
             return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
           }
         }
-        if (updateUserDTO.calorie && user.access === EAccess.USER && updateUserDTO.calorie > 0) {
-          user.calorie = updateUserDTO.calorie;
-        } else {
-          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        if (updateUserDTO.calorie && updateUserDTO.calorie > 0 && user.calorie !== updateUserDTO.calorie) {
+          if (user.access === EAccess.USER || user.userName === thisUser.userName) {
+            user.calorie = updateUserDTO.calorie;
+          } else {
+            return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+          }
         }
-        if (updateUserDTO.name && user.access === EAccess.USER) {
-          user.name = updateUserDTO.name;
-        } else {
-          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        if (updateUserDTO.name && user.name !== updateUserDTO.name) {
+          if (user.access === EAccess.USER || user.name === thisUser.name) {
+            user.name = updateUserDTO.name;
+          } else {
+            return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+          }
         }
-        if ((updateUserDTO.access === EAccess.MANAGER && user.access === EAccess.USER) || (updateUserDTO.access.valueOf() === user.access)) {
-          user.access = updateUserDTO.access;
-        } else {
-          return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+        // tslint:disable-next-line:triple-equals
+        if (updateUserDTO.access && user.access != updateUserDTO.access) {
+          // tslint:disable-next-line:triple-equals
+          if (user.access === EAccess.USER && updateUserDTO.access == EAccess.MANAGER) {
+            user.access = updateUserDTO.access;
+          } else {
+            return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
+          }
         }
         const data: IUser = await UserEntity.save(user);
         return ServiceResponse.success(data, EMessages.SUCCESS, 1);
@@ -126,7 +137,7 @@ export class UserService {
         && !updateUserDTO.name) {
         return ServiceResponse.error(EMessages.BAD_REQUEST);
       } else {
-        if (  updateUserDTO.password && updateUserDTO.password !== user.password) {
+        if ( updateUserDTO.password && updateUserDTO.password !== user.password ) {
           user.password = bcryprt.hashSync(updateUserDTO.password, 10);
         }
         if ( updateUserDTO.calorie && updateUserDTO.calorie > 0  ) {
@@ -154,8 +165,8 @@ export class UserService {
     if ( (thisUser.access === EAccess.MANAGER && user.access === EAccess.USER)
       || (thisUser.access === EAccess.ADMIN && userName !== thisUser.userName)) {
       await MealEntity.remove(meals);
-      const data: IUser = await UserEntity.removeUser(userName);
-      return ServiceResponse.success(data, EMessages.SUCCESS, 1);
+      await UserEntity.removeUser(userName);
+      return ServiceResponse.success('', EMessages.SUCCESS, 1);
     } else {
       return ServiceResponse.error(EMessages.UNAUTHORIZED_REQUEST);
     }

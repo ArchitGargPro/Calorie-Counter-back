@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import MealController from '../controllers/meal.controller';
 import { MealService } from '../services/meal.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -11,7 +11,7 @@ import AuthService from '../services/auth.service';
 @Module({
   imports: [TypeOrmModule.forFeature([MealEntity])],
   controllers: [MealController],
-  providers: [MealService, AuthService, AuthenticationGuard, {useValue: EAccess, provide: RolesGuard} ],
+  providers: [MealService, AuthService, AuthenticationGuard, ValidationPipe, {useValue: EAccess, provide: RolesGuard} ],
 })
 
 class MealModule {

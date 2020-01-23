@@ -17,9 +17,9 @@ export default class MealController {
   }
 
   @Post('/new')
-  @UsePipes(new JoiValidationPipe(createMealValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async postMeal( @Body() meal: CreateMealDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
+  async postMeal( @Body(new JoiValidationPipe(createMealValidationSchema)) meal: CreateMealDTO,
+                  @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     if (authDetail.currentUser.access === EAccess.ADMIN) {
       return await this.mealService.insert(meal, meal.userName, authDetail.currentUser.access);
     }
@@ -27,9 +27,8 @@ export default class MealController {
   }
 
   @Get()
-  @UsePipes(new JoiValidationPipe(filtersValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async getFilteredMeals(@Query() filters: IFilters,
+  async getFilteredMeals(@Query(new JoiValidationPipe(filtersValidationSchema)) filters: IFilters,
                          @AuthDetails() authDetail: AuthDetail,
                          @Query('page') page: number = 0,
                          @Query('limit') limit: number = 10): Promise<ServiceResponse> {
@@ -38,13 +37,12 @@ export default class MealController {
   }
 
   @Put('/update')
-  @UsePipes(new JoiValidationPipe(updateMealValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
-  async updateMeal(@Body() meal: IUpdateMealDTO): Promise<ServiceResponse> {
+  async updateMeal(@Body(new JoiValidationPipe(updateMealValidationSchema)) meal: IUpdateMealDTO): Promise<ServiceResponse> {
       return await this.mealService.update(meal);
   }
 
-  @Delete('/delete/:id')
+  @Delete('/remove/:id')
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.ADMIN]))
   async deleteMeal(@Param('id') id: number): Promise<ServiceResponse> {
       return await this.mealService.delete(id);

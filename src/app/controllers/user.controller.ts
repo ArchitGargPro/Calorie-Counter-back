@@ -18,8 +18,7 @@ export default class UserController {
   }
 
   @Post('login')
-  @UsePipes(new JoiValidationPipe(loginValidationSchema))
-  async login(@Body() loginCredentials: LoginDTO): Promise<ServiceResponse> {
+  async login(@Body(new JoiValidationPipe(loginValidationSchema)) loginCredentials: LoginDTO): Promise<ServiceResponse> {
     return await this.userService.login(loginCredentials);
   }
 
@@ -40,15 +39,15 @@ export default class UserController {
   }
 
   @Post('/new')
-  @UsePipes(new JoiValidationPipe(newUserValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.MANAGER, EAccess.ADMIN]))
-  async createUser(@Body() createUserDTO: CreateUserDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
+  async createUser(@Body(new JoiValidationPipe(newUserValidationSchema)) createUserDTO: CreateUserDTO,
+                   @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     return await this.userService.createUser(createUserDTO, authDetail.currentUser);
   }
 
   @Post('/signUp')
   @UsePipes(new JoiValidationPipe(newUserValidationSchema))
-  async createAccount(@Body() createUserDTO: CreateUserDTO): Promise<ServiceResponse> {
+  async createAccount(@Body(new JoiValidationPipe(newUserValidationSchema)) createUserDTO: CreateUserDTO): Promise<ServiceResponse> {
     return await this.userService.createUser(createUserDTO, {access: 0});
   }
 
@@ -59,9 +58,9 @@ export default class UserController {
   }
 
   @Put('/update')
-  @UsePipes(new JoiValidationPipe(updateUserValidationSchema))
   @UseGuards(AuthenticationGuard, new RolesGuard([EAccess.USER, EAccess.MANAGER, EAccess.ADMIN]))
-  async updateUser(@Body() updateUserDTO: UpdateUserDTO, @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
+  async updateUser(@Body(new JoiValidationPipe(updateUserValidationSchema)) updateUserDTO: UpdateUserDTO,
+                   @AuthDetails() authDetail: AuthDetail): Promise<ServiceResponse> {
     return await this.userService.updateUser(updateUserDTO, authDetail.currentUser);
   }
 }

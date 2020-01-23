@@ -96,8 +96,13 @@ export class MealService {
         time: Between(fromTime, toTime),
         title: Like('%' + filters.title + '%'),
       },
-      orderBy: 'time',
-      groupBy: 'date',
+      group: {
+        date: 'ASC',
+      },
+      order: {
+        date: 'ASC',
+        time: 'ASC',
+      },
       skip: (options.page - 1) * options.limit,
       take: options.limit,
     };

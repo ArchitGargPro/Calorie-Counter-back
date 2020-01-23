@@ -29,7 +29,6 @@ interface IUpdateMealDTO {
   calorie?: number;
   date?: string;
   time?: string;
-  userName?: string;
 }
 
 export {
